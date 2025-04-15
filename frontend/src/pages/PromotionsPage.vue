@@ -1,615 +1,452 @@
 <template>
   <div class="promotions-page">
     <div class="page-header">
-      <h1>优惠活动</h1>
-      <p class="page-description">发现当前正在进行的限时特惠</p>
+      <h1>促销活动</h1>
+      <p>了解最新促销信息，抢购限时特价商品</p>
     </div>
-
-    <!-- 主打活动 Banner -->
-    <div class="main-promotion">
-      <el-carousel height="400px">
-        <el-carousel-item v-for="banner in mainBanners" :key="banner.id">
-          <div class="promotion-banner" :style="{ backgroundImage: `url(${banner.image})` }">
-            <div class="banner-content">
+    
+    <!-- 促销Banner -->
+    <div class="promo-banners" v-loading="loading">
+      <el-carousel :interval="5000" height="300px" arrow="always">
+        <el-carousel-item v-for="banner in promotionsData.banners" :key="banner.id">
+          <div class="banner-content" :style="{ backgroundImage: `url(${banner.imageUrl})` }">
+            <div class="banner-info">
               <h2>{{ banner.title }}</h2>
               <p>{{ banner.description }}</p>
-              <el-button type="danger" size="large" @click="goToPromotion(banner.link)">立即查看</el-button>
+              <el-button type="primary">查看详情</el-button>
             </div>
           </div>
         </el-carousel-item>
       </el-carousel>
     </div>
-
-    <!-- 限时特惠 -->
-    <div class="promotion-section flash-sale">
+    
+    <!-- 限时抢购 -->
+    <div class="section flash-deals" v-loading="loading">
       <div class="section-header">
-        <div class="section-title">
-          <el-icon><Timer /></el-icon>
-          <h2>限时特惠</h2>
-        </div>
+        <h2>限时抢购</h2>
         <div class="countdown">
-          <span>剩余时间:</span>
-          <div class="timer">
-            <div class="time-block">{{ countdown.hours }}</div>
-            <span>:</span>
-            <div class="time-block">{{ countdown.minutes }}</div>
-            <span>:</span>
-            <div class="time-block">{{ countdown.seconds }}</div>
-          </div>
+          <span>距结束还剩: </span>
+          <strong>{{ countdown.hours }}</strong> 时
+          <strong>{{ countdown.minutes }}</strong> 分
+          <strong>{{ countdown.seconds }}</strong> 秒
         </div>
       </div>
-
+      
       <div class="products-grid">
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12" :md="6" v-for="product in flashSaleProducts" :key="product.id">
-            <router-link :to="`/product/${product.id}`" class="product-link">
-              <div class="product-card">
-                <div class="product-image-container">
-                  <el-image :src="product.image" class="product-image" fit="cover" />
-                  <span class="discount-tag">{{ product.discount }}% OFF</span>
-                </div>
-                <div class="product-info">
-                  <h3 class="product-name">{{ product.name }}</h3>
-                  <div class="product-price">
-                    <div class="current-price">{{ product.price }}</div>
-                    <div class="original-price">{{ product.originalPrice }}</div>
-                  </div>
-                  <div class="progress-container">
-                    <div class="progress-text">已售 {{ product.soldPercentage }}%</div>
-                    <el-progress :percentage="product.soldPercentage" :show-text="false" status="exception" />
-                  </div>
-                </div>
+        <div v-for="product in promotionsData.flashSales" :key="product.id" class="product-card">
+          <div class="product-image">
+            <el-image :src="product.image" fit="cover"></el-image>
+            <div class="discount-badge">
+              -{{ product.discount }}%
+            </div>
+          </div>
+          <div class="product-info">
+            <h3>{{ product.name }}</h3>
+            <div class="product-price">
+              <span class="current-price">{{ product.price }}</span>
+              <span class="original-price">{{ product.originalPrice }}</span>
+            </div>
+            <div class="sold-progress">
+              <el-progress 
+                :percentage="product.soldPercentage" 
+                :stroke-width="8" 
+                color="#ff6b6b"
+              ></el-progress>
+              <div class="sold-text">
+                已售{{ product.soldPercentage }}%
               </div>
-            </router-link>
-          </el-col>
-        </el-row>
+            </div>
+            <el-button type="danger" size="large">立即抢购</el-button>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- 优惠券区域 -->
-    <div class="promotion-section coupons">
+    
+    <!-- 优惠券领取 -->
+    <div class="section coupons" v-loading="loading">
       <div class="section-header">
-        <div class="section-title">
-          <el-icon><Ticket /></el-icon>
-          <h2>优惠券</h2>
-        </div>
-        <router-link to="/coupons" class="view-all">查看全部</router-link>
+        <h2>优惠券中心</h2>
+        <span class="more-link">查看全部 &gt;</span>
       </div>
-
-      <div class="coupons-grid">
-        <div v-for="coupon in coupons" :key="coupon.id" class="coupon-card">
-          <div class="coupon-left">
+      
+      <div class="coupons-container">
+        <div 
+          v-for="coupon in promotionsData.coupons" 
+          :key="coupon.id" 
+          class="coupon-card"
+          :class="{ 'unavailable': coupon.status !== 'available' }"
+        >
+          <div class="coupon-content">
             <div class="coupon-amount">
               <span class="currency">¥</span>
-              <span class="amount">{{ coupon.amount }}</span>
+              <span class="value">{{ coupon.amount }}</span>
             </div>
-            <div class="coupon-condition">满{{ coupon.minSpend }}元可用</div>
+            <div class="coupon-info">
+              <h4>{{ coupon.name }}</h4>
+              <p>满{{ coupon.minSpend }}元可用</p>
+              <p class="coupon-scope">{{ coupon.scope }}</p>
+              <p class="coupon-time">{{ coupon.validUntil }}</p>
+            </div>
           </div>
-          <div class="coupon-right">
-            <div class="coupon-name">{{ coupon.name }}</div>
-            <div class="coupon-time">{{ coupon.validUntil }}</div>
-            <div class="coupon-type">{{ coupon.scope }}</div>
-            <el-button type="danger" size="small" @click="claimCoupon(coupon.id)">
-              立即领取
+          <div class="coupon-action">
+            <el-button 
+              :type="coupon.status === 'available' ? 'primary' : 'info'"
+              :disabled="coupon.status !== 'available'"
+              class="get-coupon-btn"
+            >
+              {{ coupon.status === 'available' ? '立即领取' : '已领取' }}
             </el-button>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- 活动专区 -->
-    <div class="promotion-section promo-categories">
+    
+    <!-- 专题活动 -->
+    <div class="section special-promotions">
       <div class="section-header">
-        <div class="section-title">
-          <el-icon><Present /></el-icon>
-          <h2>活动专区</h2>
-        </div>
+        <h2>专题活动</h2>
       </div>
-
-      <div class="category-cards">
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="category in promoCategories" :key="category.id">
-            <div class="promo-category-card" @click="goToPromotion(category.link)">
-              <div class="category-image-container">
-                <el-image :src="category.image" fit="cover" class="category-image" />
-              </div>
-              <div class="category-info">
-                <h3>{{ category.name }}</h3>
-                <p>{{ category.description }}</p>
+      
+      <div class="special-grid">
+        <div class="special-item large">
+          <div class="special-image">
+            <el-image src="https://picsum.photos/id/1059/800/400" fit="cover"></el-image>
+            <div class="special-overlay">
+              <div class="special-content">
+                <h3>年中大促</h3>
+                <p>全场低至5折起，满减优惠多多</p>
+                <el-button>查看详情</el-button>
               </div>
             </div>
-          </el-col>
-        </el-row>
-      </div>
-    </div>
-
-    <!-- 会员专享 -->
-    <div class="promotion-section member-benefits">
-      <div class="section-header">
-        <div class="section-title">
-          <el-icon><UserFilled /></el-icon>
-          <h2>会员专享</h2>
-        </div>
-        <el-button type="text" @click="goToMemberCenter">了解会员权益 <el-icon><ArrowRight /></el-icon></el-button>
-      </div>
-
-      <div class="member-benefits-content">
-        <div class="member-banner">
-          <div class="member-info">
-            <h3>成为会员，享受更多特权</h3>
-            <ul class="benefit-list">
-              <li><el-icon><Check /></el-icon> 专属优惠折扣</li>
-              <li><el-icon><Check /></el-icon> 生日特别礼遇</li>
-              <li><el-icon><Check /></el-icon> 专属客服通道</li>
-              <li><el-icon><Check /></el-icon> 提前购新品</li>
-            </ul>
-            <el-button type="warning">立即加入会员</el-button>
           </div>
-          <div class="member-image">
-            <el-image src="https://picsum.photos/id/60/500/300" fit="cover" />
+        </div>
+        <div class="special-item">
+          <div class="special-image">
+            <el-image src="https://picsum.photos/id/1083/400/200" fit="cover"></el-image>
+            <div class="special-overlay">
+              <div class="special-content">
+                <h3>新品发布会</h3>
+                <p>新品提前预约，好礼送不停</p>
+                <el-button>查看详情</el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="special-item">
+          <div class="special-image">
+            <el-image src="https://picsum.photos/id/160/400/200" fit="cover"></el-image>
+            <div class="special-overlay">
+              <div class="special-content">
+                <h3>限时秒杀</h3>
+                <p>每天10点，抢购爆款商品</p>
+                <el-button>查看详情</el-button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { 
-  Timer, Ticket, Present, UserFilled, 
-  ArrowRight, Check 
-} from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue';
+import { ElMessage } from 'element-plus';
+import mockService from '@/services/mockService';
 
-const router = useRouter()
+// 加载状态
+const loading = ref(true);
 
-// 倒计时数据
+// 促销数据
+const promotionsData = reactive({
+  banners: [],
+  flashSales: [],
+  coupons: []
+});
+
+// 倒计时
 const countdown = reactive({
   hours: '00',
   minutes: '00',
   seconds: '00'
-})
+});
 
-// 主Banner数据
-const mainBanners = ref([
-  {
-    id: 1,
-    title: '年中大促',
-    description: '全场商品低至5折，限时抢购',
-    image: 'https://picsum.photos/id/40/1200/400',
-    link: '/products?promotion=mid-year'
-  },
-  {
-    id: 2,
-    title: '新品首发',
-    description: '新款智能手表上市，预购享优惠',
-    image: 'https://picsum.photos/id/41/1200/400',
-    link: '/products?category=wearables'
-  },
-  {
-    id: 3,
-    title: '品牌特惠',
-    description: '精选品牌联合促销，满减优惠',
-    image: 'https://picsum.photos/id/42/1200/400',
-    link: '/products?brand=brand1'
-  }
-])
+let countdownTimer: number | null = null;
 
-// 限时特惠产品
-const flashSaleProducts = ref([
-  {
-    id: 1,
-    name: '智能手表Pro',
-    price: '¥999',
-    originalPrice: '¥1999',
-    discount: 50,
-    image: 'https://picsum.photos/id/50/300/300',
-    soldPercentage: 85
-  },
-  {
-    id: 2,
-    name: '无线蓝牙耳机',
-    price: '¥199',
-    originalPrice: '¥399',
-    discount: 50,
-    image: 'https://picsum.photos/id/51/300/300',
-    soldPercentage: 76
-  },
-  {
-    id: 3,
-    name: '高清投影仪',
-    price: '¥2999',
-    originalPrice: '¥3999',
-    discount: 25,
-    image: 'https://picsum.photos/id/52/300/300',
-    soldPercentage: 45
-  },
-  {
-    id: 4,
-    name: '便携式音箱',
-    price: '¥299',
-    originalPrice: '¥499',
-    discount: 40,
-    image: 'https://picsum.photos/id/53/300/300',
-    soldPercentage: 92
+// 获取促销数据
+const fetchPromotionsData = async () => {
+  try {
+    loading.value = true;
+    const data = await mockService.getPromotionsData();
+    
+    // 更新促销数据
+    promotionsData.banners = data.banners || [];
+    promotionsData.flashSales = data.flashSales || [];
+    promotionsData.coupons = data.coupons || [];
+    
+  } catch (error) {
+    console.error('获取促销数据失败', error);
+    ElMessage.error('获取促销数据失败');
+  } finally {
+    loading.value = false;
   }
-])
+};
 
-// 优惠券数据
-const coupons = ref([
-  {
-    id: 1,
-    name: '全品类通用券',
-    amount: 50,
-    minSpend: 500,
-    validUntil: '2025-06-30前有效',
-    scope: '全场通用',
-    status: 'available'
-  },
-  {
-    id: 2,
-    name: '电子产品专用券',
-    amount: 100,
-    minSpend: 1000,
-    validUntil: '2025-05-31前有效',
-    scope: '限电子产品品类',
-    status: 'available'
-  },
-  {
-    id: 3,
-    name: '新人专享券',
-    amount: 20,
-    minSpend: 100,
-    validUntil: '领取后7天内有效',
-    scope: '新用户首单专享',
-    status: 'available'
-  },
-  {
-    id: 4,
-    name: '会员生日券',
-    amount: 200,
-    minSpend: 1000,
-    validUntil: '生日当月有效',
-    scope: '会员专享',
-    status: 'available'
-  }
-])
-
-// 活动专区数据
-const promoCategories = ref([
-  {
-    id: 1,
-    name: '手机数码',
-    description: '精选数码产品，限时特惠',
-    image: 'https://picsum.photos/id/54/300/200',
-    link: '/products?category=electronics'
-  },
-  {
-    id: 2,
-    name: '智能家居',
-    description: '打造智能生活，品质之选',
-    image: 'https://picsum.photos/id/55/300/200',
-    link: '/products?category=smart-home'
-  },
-  {
-    id: 3,
-    name: '服饰鞋包',
-    description: '时尚穿搭，潮流单品',
-    image: 'https://picsum.photos/id/56/300/200',
-    link: '/products?category=fashion'
-  },
-  {
-    id: 4,
-    name: '美妆个护',
-    description: '焕发魅力，气质出众',
-    image: 'https://picsum.photos/id/57/300/200',
-    link: '/products?category=beauty'
-  }
-])
-
-// 倒计时计算
-let timer: number | null = null
-const calculateCountdown = () => {
-  // 设置倒计时结束时间
-  const endDate = new Date('2025-05-01T00:00:00')
-  const now = new Date()
+// 处理倒计时逻辑
+const startCountdown = () => {
+  // 设置倒计时结束时间（假设为每天晚上24点）
+  const now = new Date();
+  const endTime = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0, 0, 0
+  );
   
-  // 计算剩余时间（毫秒）
-  let diff = endDate.getTime() - now.getTime()
+  const updateCountdown = () => {
+    const now = new Date();
+    const diff = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
+    
+    const hoursValue = Math.floor(diff / 3600);
+    const minutesValue = Math.floor((diff % 3600) / 60);
+    const secondsValue = diff % 60;
+    
+    countdown.hours = hoursValue < 10 ? `0${hoursValue}` : `${hoursValue}`;
+    countdown.minutes = minutesValue < 10 ? `0${minutesValue}` : `${minutesValue}`;
+    countdown.seconds = secondsValue < 10 ? `0${secondsValue}` : `${secondsValue}`;
+  };
   
-  // 如果倒计时已结束，则显示00:00:00
-  if (diff <= 0) {
-    countdown.hours = '00'
-    countdown.minutes = '00'
-    countdown.seconds = '00'
-    if (timer) {
-      clearInterval(timer)
-      timer = null
-    }
-    return
-  }
-  
-  // 计算时分秒
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  diff -= hours * 1000 * 60 * 60
-  
-  const minutes = Math.floor(diff / (1000 * 60))
-  diff -= minutes * 1000 * 60
-  
-  const seconds = Math.floor(diff / 1000)
-  
-  // 格式化为两位数
-  countdown.hours = hours < 10 ? `0${hours}` : `${hours}`
-  countdown.minutes = minutes < 10 ? `0${minutes}` : `${minutes}`
-  countdown.seconds = seconds < 10 ? `0${seconds}` : `${seconds}`
-}
+  updateCountdown();
+  countdownTimer = window.setInterval(updateCountdown, 1000);
+};
 
 // 领取优惠券
 const claimCoupon = (couponId: number) => {
-  // 实际项目中应该调用API领取优惠券
-  console.log(`领取优惠券ID: ${couponId}`)
-  // 提示用户已领取
-  window.$message?.success('优惠券领取成功')
-}
+  ElMessage.success('优惠券领取成功，已发放到您的账户');
+};
 
-// 跳转到促销页面
-const goToPromotion = (link: string) => {
-  router.push(link)
-}
-
-// 跳转到会员中心
-const goToMemberCenter = () => {
-  router.push('/member-center')
-}
-
-// 页面加载时初始化倒计时
 onMounted(() => {
-  calculateCountdown()
-  timer = setInterval(calculateCountdown, 1000) as unknown as number
-})
+  fetchPromotionsData();
+  startCountdown();
+});
 
-// 组件卸载时清除定时器
-onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
+onBeforeUnmount(() => {
+  if (countdownTimer !== null) {
+    clearInterval(countdownTimer);
   }
-})
+});
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .promotions-page {
   padding: 20px;
 }
 
 .page-header {
-  margin-bottom: 30px;
   text-align: center;
+  margin-bottom: 30px;
   
   h1 {
-    font-size: 32px;
+    font-size: 28px;
     margin-bottom: 10px;
   }
   
-  .page-description {
+  p {
     color: #666;
     font-size: 16px;
   }
 }
 
-.main-promotion {
+.section {
   margin-bottom: 40px;
-  border-radius: 8px;
-  overflow: hidden;
 }
 
-.promotion-banner {
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  position: relative;
+.section-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    position: relative;
+    padding-left: 15px;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 20px;
+      background-color: #ff6b6b;
+      border-radius: 2px;
+    }
   }
   
+  .more-link {
+    color: #409eff;
+    cursor: pointer;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+/* 促销Banner样式 */
+.promo-banners {
+  margin-bottom: 30px;
+  
   .banner-content {
-    position: relative;
-    color: #fff;
-    padding: 0 40px;
-    max-width: 500px;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .banner-info {
+    max-width: 50%;
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    margin-left: 50px;
     
     h2 {
-      font-size: 36px;
-      margin-bottom: 15px;
+      margin-top: 0;
+      font-size: 24px;
     }
     
     p {
-      font-size: 18px;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
   }
 }
 
-.promotion-section {
-  margin-bottom: 50px;
-  
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    
-    .section-title {
-      display: flex;
-      align-items: center;
-      
-      .el-icon {
-        font-size: 24px;
-        color: var(--el-color-primary);
-        margin-right: 10px;
-      }
-      
-      h2 {
-        font-size: 24px;
-        margin: 0;
-      }
-    }
-    
-    .view-all {
-      color: var(--el-color-primary);
-      text-decoration: none;
-      
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-}
-
-.flash-sale {
+/* 限时抢购样式 */
+.flash-deals {
   .countdown {
-    display: flex;
-    align-items: center;
+    font-size: 16px;
     
-    span {
-      margin-right: 10px;
-      font-size: 16px;
-    }
-    
-    .timer {
-      display: flex;
-      align-items: center;
-      
-      .time-block {
-        background: #333;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-weight: bold;
-        min-width: 34px;
-        text-align: center;
-        font-size: 18px;
-      }
-      
-      span {
-        margin: 0 5px;
-        font-weight: bold;
-        font-size: 18px;
-      }
+    strong {
+      display: inline-block;
+      background-color: #ff6b6b;
+      color: white;
+      padding: 2px 6px;
+      margin: 0 3px;
+      border-radius: 4px;
+      min-width: 28px;
+      text-align: center;
     }
   }
-}
-
-.products-grid {
+  
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  
   .product-card {
-    background: #fff;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
-    margin-bottom: 20px;
+    background-color: white;
+    transition: transform 0.3s;
     
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+    
+    .product-image {
+      height: 200px;
+      position: relative;
+      
+      .el-image {
+        width: 100%;
+        height: 100%;
+      }
+      
+      .discount-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #ff6b6b;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+    }
+    
+    .product-info {
+      padding: 15px;
+      
+      h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .product-price {
+        margin-bottom: 15px;
+        
+        .current-price {
+          color: #ff6b6b;
+          font-size: 22px;
+          font-weight: bold;
+          margin-right: 10px;
+        }
+        
+        .original-price {
+          color: #999;
+          text-decoration: line-through;
+        }
+      }
+      
+      .sold-progress {
+        margin-bottom: 15px;
+        
+        .sold-text {
+          font-size: 12px;
+          text-align: right;
+          color: #666;
+          margin-top: 5px;
+        }
+      }
+      
+      .el-button {
+        width: 100%;
+      }
     }
   }
 }
 
-.product-link {
-  text-decoration: none;
-  color: inherit;
-}
-
-.product-image-container {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-  
-  .product-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .discount-tag {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #ff6b6b;
-    color: #fff;
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 4px;
-  }
-}
-
-.product-info {
-  padding: 15px;
-  
-  .product-name {
-    font-size: 16px;
-    margin-bottom: 10px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .product-price {
+/* 优惠券样式 */
+.coupons {
+  .coupons-container {
     display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    
-    .current-price {
-      color: #ff6b6b;
-      font-weight: 600;
-      font-size: 18px;
-    }
-    
-    .original-price {
-      color: #999;
-      font-size: 14px;
-      margin-left: 10px;
-      text-decoration: line-through;
-    }
+    flex-wrap: wrap;
+    gap: 20px;
   }
-  
-  .progress-container {
-    .progress-text {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 5px;
-    }
-  }
-}
-
-.coupons-grid {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
   
   .coupon-card {
     display: flex;
-    width: calc(50% - 10px);
+    width: calc(25% - 15px);
+    min-width: 250px;
     height: 120px;
-    background: #fff;
     border-radius: 8px;
     overflow: hidden;
-    position: relative;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
     
     &::before {
       content: '';
@@ -618,204 +455,179 @@ onUnmounted(() => {
       bottom: 0;
       left: 25%;
       width: 1px;
-      background: radial-gradient(circle, #ddd 0, #ddd 2px, transparent 2px);
-      background-size: 1px 10px;
-      background-repeat: repeat-y;
+      background: repeating-linear-gradient(#eee 0, #eee 5px, transparent 5px, transparent 10px);
     }
     
-    .coupon-left {
-      width: 25%;
-      background: linear-gradient(135deg, var(--el-color-danger) 0%, #ff9b9b 100%);
-      color: #fff;
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 25%;
+      width: 1px;
+      background: repeating-linear-gradient(#eee 0, #eee 5px, transparent 5px, transparent 10px);
+    }
+    
+    &.unavailable {
+      opacity: 0.6;
+      
+      &::before, &::after {
+        background: repeating-linear-gradient(#ccc 0, #ccc 5px, transparent 5px, transparent 10px);
+      }
+    }
+    
+    .coupon-content {
+      flex-grow: 3;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      padding: 15px;
+      background-color: white;
       
       .coupon-amount {
-        font-size: 24px;
-        font-weight: bold;
-        
-        .currency {
-          font-size: 16px;
-          vertical-align: super;
-        }
-      }
-      
-      .coupon-condition {
-        font-size: 12px;
-        margin-top: 5px;
-      }
-    }
-    
-    .coupon-right {
-      width: 75%;
-      padding: 15px 20px;
-      display: flex;
-      flex-direction: column;
-      
-      .coupon-name {
-        font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 5px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      
-      .coupon-time,
-      .coupon-type {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 5px;
-      }
-      
-      .el-button {
-        margin-top: auto;
-        align-self: flex-end;
-      }
-    }
-  }
-}
-
-.promo-category-card {
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
-  margin-bottom: 20px;
-  cursor: pointer;
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-  }
-  
-  .category-image-container {
-    height: 160px;
-    overflow: hidden;
-    
-    .category-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.5s;
-      
-      &:hover {
-        transform: scale(1.05);
-      }
-    }
-  }
-  
-  .category-info {
-    padding: 15px;
-    
-    h3 {
-      font-size: 18px;
-      margin-bottom: 5px;
-    }
-    
-    p {
-      font-size: 14px;
-      color: #666;
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-}
-
-.member-banner {
-  display: flex;
-  background: linear-gradient(to right, #fcaf17, #f7d770);
-  border-radius: 8px;
-  overflow: hidden;
-  
-  .member-info {
-    flex: 1;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    color: #fff;
-    
-    h3 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      font-weight: 600;
-    }
-    
-    .benefit-list {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 25px 0;
-      
-      li {
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        padding-right: 15px;
         
-        .el-icon {
-          margin-right: 10px;
-          background: #fff;
-          color: #fcaf17;
-          border-radius: 50%;
+        .currency {
+          font-size: 18px;
+          color: #ff6b6b;
+          align-self: flex-start;
+          margin-top: 5px;
+        }
+        
+        .value {
+          font-size: 36px;
+          font-weight: bold;
+          color: #ff6b6b;
+        }
+      }
+      
+      .coupon-info {
+        flex-grow: 1;
+        padding-left: 15px;
+        
+        h4 {
+          margin-top: 0;
+          margin-bottom: 5px;
           font-size: 16px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        p {
+          margin: 3px 0;
+          color: #666;
+          font-size: 14px;
+        }
+        
+        .coupon-scope {
+          font-size: 12px;
+        }
+        
+        .coupon-time {
+          color: #999;
+          font-size: 12px;
         }
       }
     }
-  }
-  
-  .member-image {
-    flex: 1;
-    overflow: hidden;
     
-    .el-image {
-      height: 100%;
+    .coupon-action {
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      background-color: #f9f9f9;
       
-      img {
-        height: 100%;
-        object-fit: cover;
+      .get-coupon-btn {
+        width: 100%;
       }
     }
   }
 }
 
-@media (max-width: 992px) {
-  .coupons-grid .coupon-card {
-    width: 100%;
+/* 专题活动样式 */
+.special-promotions {
+  .special-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
+    gap: 20px;
   }
   
-  .member-banner {
-    flex-direction: column;
+  .special-item {
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
     
-    .member-image {
-      height: 200px;
+    &.large {
+      grid-column: span 2;
+      grid-row: span 1;
+    }
+    
+    .special-image {
+      height: 100%;
+      
+      .el-image {
+        width: 100%;
+        height: 100%;
+      }
+    }
+    
+    .special-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+      
+      &:hover {
+        opacity: 1;
+      }
+    }
+    
+    .special-content {
+      text-align: center;
+      color: white;
+      padding: 20px;
+      
+      h3 {
+        margin-top: 0;
+        font-size: 24px;
+      }
+      
+      p {
+        margin-bottom: 20px;
+      }
     }
   }
 }
 
 @media (max-width: 768px) {
-  .flash-sale .countdown {
-    flex-direction: column;
-    align-items: flex-start;
-    
-    span {
-      margin-bottom: 5px;
+  .promo-banners {
+    .banner-info {
+      max-width: 80%;
+      margin-left: 20px;
     }
   }
   
-  .promotion-banner .banner-content {
-    padding: 0 20px;
+  .coupon-card {
+    width: 100% !important;
+  }
+  
+  .special-grid {
+    grid-template-columns: 1fr !important;
     
-    h2 {
-      font-size: 28px;
-    }
-    
-    p {
-      font-size: 16px;
+    .special-item {
+      &.large {
+        grid-column: span 1;
+      }
     }
   }
 }

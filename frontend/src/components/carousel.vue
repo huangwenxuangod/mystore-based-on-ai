@@ -1,6 +1,6 @@
 <template>
     <!-- 轮播图部分 -->
-  <div class="carousel-container" ref="carouselRef">
+  <div class="carousel-container" ref="carouselRef" v-loading="loading">
     <el-carousel :interval="5000" type="card" height="400px" ref="carousel">
       <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
         <div class="carousel-content" :style="{backgroundImage: `url(${item.imageUrl})`}">
@@ -19,34 +19,13 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 // 导入防抖函数
 import { debounce } from '../utils/debounce';
+import mockService from '@/services/mockService';
+
+// 加载状态
+const loading = ref(true);
 
 // 轮播图数据
-const carouselItems = ref([
-  {
-    title: "新款夏季服装上市",
-    description: "清凉透气，时尚有型",
-    buttonText: "立即查看",
-    imageUrl: "https://picsum.photos/id/237/1200/400"
-  },
-  {
-    title: "电子产品大促销",
-    description: "限时折扣，不容错过",
-    buttonText: "查看详情",
-    imageUrl: "https://picsum.photos/id/180/1200/400"
-  },
-  {
-    title: "家居装饰新品",
-    description: "为您的家增添温馨",
-    buttonText: "去选购",
-    imageUrl: "https://picsum.photos/id/160/1200/400"
-  },
-  {
-    title: "运动健身装备",
-    description: "健康生活，从这里开始",
-    buttonText: "了解更多",
-    imageUrl: "https://picsum.photos/id/106/1200/400"
-  }
-]);
+const carouselItems = ref([]);
 
 // 轮播图引用
 const carouselRef = ref(null);
@@ -65,7 +44,32 @@ const handleWheel = debounce((e) => {
   }
 }, 300); // 300ms防抖延迟
 
+// 获取轮播图数据
+const fetchCarouselData = async () => {
+  try {
+    loading.value = true;
+    const data = await mockService.getCarouselData();
+    carouselItems.value = data;
+  } catch (error) {
+    console.error('获取轮播图数据失败', error);
+    // 设置默认数据
+    carouselItems.value = [
+      {
+        title: "数据加载失败",
+        description: "请稍后重试",
+        buttonText: "刷新页面",
+        imageUrl: "https://picsum.photos/id/237/1200/400"
+      }
+    ];
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
+  // 获取轮播图数据
+  fetchCarouselData();
+  
   // 添加滚轮事件监听
   if (carouselRef.value) {
     carouselRef.value.addEventListener('wheel', handleWheel, { passive: true });

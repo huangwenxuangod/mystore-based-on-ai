@@ -1,406 +1,529 @@
 <template>
   <div class="new-arrivals-page">
     <div class="page-header">
-      <h1>新品上市</h1>
-      <p class="page-description">发现我们最新上架的精选商品</p>
+      <div class="header-content">
+        <h1>新品上市</h1>
+        <p>发现最新上架的潮流商品</p>
+      </div>
     </div>
-
-    <!-- 筛选区域 -->
-    <div class="filter-section">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-select v-model="sortBy" placeholder="排序方式" class="filter-select">
-            <el-option label="最新上架" value="newest" />
-            <el-option label="价格从低到高" value="price-asc" />
-            <el-option label="价格从高到低" value="price-desc" />
-            <el-option label="评分最高" value="rating" />
-          </el-select>
-        </el-col>
-        <el-col :span="6">
-          <el-select v-model="categoryFilter" placeholder="商品分类" class="filter-select">
-            <el-option label="全部分类" value="" />
-            <el-option label="电子产品" value="electronics" />
-            <el-option label="智能家居" value="smart-home" />
-            <el-option label="配件" value="accessories" />
-            <el-option label="家居生活" value="home" />
-          </el-select>
-        </el-col>
-        <el-col :span="6">
-          <el-select v-model="priceFilter" placeholder="价格范围" class="filter-select">
-            <el-option label="全部价格" value="" />
-            <el-option label="0-100元" value="0-100" />
-            <el-option label="100-500元" value="100-500" />
-            <el-option label="500-1000元" value="500-1000" />
-            <el-option label="1000元以上" value="1000+" />
-          </el-select>
-        </el-col>
-        <el-col :span="6" class="filter-reset">
-          <el-button @click="resetFilters">重置筛选</el-button>
-        </el-col>
-      </el-row>
+    
+    <!-- 新品上市滚动横幅 -->
+    <div class="banner-section" v-loading="loading">
+      <el-carousel :interval="4000" type="card" height="320px">
+        <el-carousel-item v-for="product in featuredProducts" :key="product.id">
+          <div 
+            class="banner-item"
+            :style="{ backgroundImage: `url(${product.image})` }"
+            @click="goToProduct(product.id)"
+          >
+            <div class="banner-content">
+              <div class="new-tag">NEW</div>
+              <h3>{{ product.name }}</h3>
+              <p>{{ product.shortDescription }}</p>
+              <div class="banner-price">{{ product.price }}</div>
+              <el-button type="primary" size="large" @click.stop="goToProduct(product.id)">
+                查看详情
+              </el-button>
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
     </div>
-
-    <!-- 新品展示 -->
-    <div class="products-grid" v-loading="loading">
-      <el-empty v-if="filteredProducts.length === 0 && !loading" description="暂无符合条件的商品" />
-      
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="product in filteredProducts" :key="product.id">
-          <router-link :to="`/product/${product.id}`" class="product-link">
-            <div class="product-card">
-              <div class="product-image-container">
-                <el-image :src="product.image" class="product-image" fit="cover" />
-                <span class="new-tag">新品</span>
-              </div>
-              <div class="product-info">
-                <h3 class="product-name">{{ product.name }}</h3>
-                <div class="product-meta">
+    
+    <!-- 新品分类展示 -->
+    <div class="category-section" v-loading="loading">
+      <div class="section-title">
+        <h2>按分类浏览</h2>
+      </div>
+      <div class="category-tabs">
+        <el-tabs v-model="activeCategory" @tab-change="handleCategoryChange">
+          <el-tab-pane 
+            v-for="category in productCategories"
+            :key="category.id" 
+            :label="category.name" 
+            :name="category.id"
+          >
+            <div class="product-grid">
+              <div
+                v-for="product in filteredProducts"
+                :key="product.id"
+                class="product-card"
+                @click="goToProduct(product.id)"
+              >
+                <div class="product-image">
+                  <el-image :src="product.image" fit="cover"></el-image>
+                  <span class="new-label">NEW</span>
+                </div>
+                <div class="product-info">
+                  <h3 class="product-name">{{ product.name }}</h3>
                   <div class="product-price">{{ product.price }}</div>
-                  <div class="product-rating">
-                    <el-rate 
-                      v-model="product.rating" 
-                      disabled 
-                      text-color="#ff9900"
-                      :show-score="true"
-                      :score-template="product.rating + ''"
-                    />
+                  <div class="product-release-date">{{ product.releaseDate }}</div>
+                  <div class="product-actions">
+                    <el-button 
+                      type="primary" 
+                      size="small" 
+                      @click.stop="addToCart(product)"
+                    >
+                      加入购物车
+                    </el-button>
+                    <el-button 
+                      icon="Star" 
+                      circle 
+                      size="small"
+                      @click.stop="addToFavorites(product)"
+                    ></el-button>
                   </div>
                 </div>
-                <div class="product-release-date">发布日期: {{ product.releaseDate }}</div>
               </div>
             </div>
-          </router-link>
-        </el-col>
-      </el-row>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
     </div>
-
-    <!-- 分页 -->
-    <div class="pagination-container" v-if="totalPages > 1">
-      <el-pagination
-        v-model:current-page="currentPage"
-        :page-size="pageSize"
-        layout="prev, pager, next"
-        :total="totalProducts"
-        @current-change="handlePageChange"
-      />
+    
+    <!-- 新品发售时间表 -->
+    <div class="coming-soon-section" v-loading="loading">
+      <div class="section-title">
+        <h2>即将发售</h2>
+        <p>关注这些即将上架的新品</p>
+      </div>
+      
+      <div class="timeline">
+        <el-timeline>
+          <el-timeline-item
+            v-for="item in upcomingProducts"
+            :key="item.id"
+            :timestamp="item.releaseDate"
+            :type="item.importance === 'high' ? 'primary' : ''"
+            :hollow="item.importance !== 'high'"
+          >
+            <div class="timeline-item-content">
+              <div class="timeline-product-image">
+                <el-image :src="item.image" fit="cover"></el-image>
+              </div>
+              <div class="timeline-product-info">
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.shortDescription }}</p>
+                <div class="countdown" v-if="item.countdown">
+                  还有 {{ item.countdown }} 天发售
+                </div>
+                <el-button type="primary" plain size="small">
+                  提醒我
+                </el-button>
+              </div>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
+    </div>
+    
+    <!-- 订阅新品通知 -->
+    <div class="subscribe-section">
+      <div class="subscribe-content">
+        <h2>订阅新品发布通知</h2>
+        <p>成为第一个了解我们新品发布的人，并获得独家优惠</p>
+        <div class="subscribe-form">
+          <el-input
+            v-model="subscribeEmail"
+            placeholder="请输入您的邮箱"
+            class="subscribe-input"
+          >
+          </el-input>
+          <el-button type="primary" @click="subscribeNewsletter">
+            订阅
+          </el-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import mockService from '@/services/mockService';
 
-// 筛选和排序状态
-const sortBy = ref('newest')
-const categoryFilter = ref('')
-const priceFilter = ref('')
-const currentPage = ref(1)
-const pageSize = ref(12)
-const loading = ref(false)
+const router = useRouter();
+const loading = ref(true);
 
-// 模拟新品数据
-const newProducts = ref([
-  {
-    id: 1,
-    name: '智能门锁',
-    price: '¥1299.00',
-    image: 'https://picsum.photos/id/5/300/300',
-    rating: 4.5,
-    category: 'smart-home',
-    releaseDate: '2025-04-01',
-  },
-  {
-    id: 2,
-    name: '智能音箱',
-    price: '¥699.00',
-    image: 'https://picsum.photos/id/6/300/300',
-    rating: 4.7,
-    category: 'smart-home',
-    releaseDate: '2025-04-05',
-  },
-  {
-    id: 3,
-    name: '智能台灯',
-    price: '¥349.00',
-    image: 'https://picsum.photos/id/7/300/300',
-    rating: 4.8,
-    category: 'smart-home',
-    releaseDate: '2025-04-08',
-  },
-  {
-    id: 4,
-    name: '机械键盘',
-    price: '¥499.00',
-    image: 'https://picsum.photos/id/8/300/300',
-    rating: 4.9,
-    category: 'accessories',
-    releaseDate: '2025-04-10',
-  },
-  {
-    id: 5,
-    name: '无线耳机',
-    price: '¥799.00',
-    image: 'https://picsum.photos/id/9/300/300',
-    rating: 4.6,
-    category: 'electronics',
-    releaseDate: '2025-04-12',
-  },
-  {
-    id: 6,
-    name: '蓝牙音箱',
-    price: '¥599.00',
-    image: 'https://picsum.photos/id/10/300/300',
-    rating: 4.5,
-    category: 'electronics',
-    releaseDate: '2025-04-13',
-  },
-  {
-    id: 7,
-    name: '智能体脂秤',
-    price: '¥199.00',
-    image: 'https://picsum.photos/id/11/300/300',
-    rating: 4.4,
-    category: 'smart-home',
-    releaseDate: '2025-04-14',
-  },
-  {
-    id: 8,
-    name: '超薄移动电源',
-    price: '¥149.00',
-    image: 'https://picsum.photos/id/12/300/300',
-    rating: 4.7,
-    category: 'accessories',
-    releaseDate: '2025-04-15',
-  },
-  {
-    id: 9,
-    name: '智能手环',
-    price: '¥299.00',
-    image: 'https://picsum.photos/id/13/300/300',
-    rating: 4.6,
-    category: 'electronics',
-    releaseDate: '2025-04-12',
-  },
-  {
-    id: 10,
-    name: '香薰机',
-    price: '¥129.00',
-    image: 'https://picsum.photos/id/14/300/300',
-    rating: 4.8,
-    category: 'home',
-    releaseDate: '2025-04-10',
-  },
-  {
-    id: 11,
-    name: '摄像头',
-    price: '¥399.00',
-    image: 'https://picsum.photos/id/15/300/300',
-    rating: 4.5,
-    category: 'electronics',
-    releaseDate: '2025-04-08',
-  },
-  {
-    id: 12,
-    name: '护眼台灯',
-    price: '¥259.00',
-    image: 'https://picsum.photos/id/16/300/300',
-    rating: 4.7,
-    category: 'home',
-    releaseDate: '2025-04-05',
-  }
-])
+// 订阅邮箱
+const subscribeEmail = ref('');
 
-// 计算筛选后的产品
-const filteredProducts = computed(() => {
-  let result = [...newProducts.value]
-  
-  // 分类筛选
-  if (categoryFilter.value) {
-    result = result.filter(product => product.category === categoryFilter.value)
-  }
-  
-  // 价格筛选
-  if (priceFilter.value) {
-    if (priceFilter.value === '0-100') {
-      result = result.filter(product => parseInt(product.price.slice(1)) < 100)
-    } else if (priceFilter.value === '100-500') {
-      result = result.filter(product => {
-        const price = parseInt(product.price.slice(1))
-        return price >= 100 && price <= 500
-      })
-    } else if (priceFilter.value === '500-1000') {
-      result = result.filter(product => {
-        const price = parseInt(product.price.slice(1))
-        return price > 500 && price <= 1000
-      })
-    } else if (priceFilter.value === '1000+') {
-      result = result.filter(product => parseInt(product.price.slice(1)) > 1000)
+// 商品数据
+const allNewProducts = ref<any[]>([]);
+const featuredProducts = ref<any[]>([]);
+const upcomingProducts = ref<any[]>([]);
+
+// 分类数据
+const productCategories = ref<any[]>([]);
+const activeCategory = ref('');
+
+// 获取新品上市数据
+const fetchNewArrivalsData = async () => {
+  try {
+    loading.value = true;
+    
+    // 通过API获取新品上市数据
+    const data = await mockService.getNewArrivalsData();
+    
+    allNewProducts.value = data.products || [];
+    featuredProducts.value = data.featuredProducts || [];
+    upcomingProducts.value = data.upcomingProducts || [];
+    productCategories.value = data.categories || [];
+    
+    // 如果有分类，默认选择第一个
+    if (productCategories.value.length > 0) {
+      activeCategory.value = productCategories.value[0].id;
     }
+    
+  } catch (error) {
+    console.error('获取新品上市数据失败', error);
+    ElMessage.error('获取新品上市数据失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 根据选中的分类筛选商品
+const filteredProducts = computed(() => {
+  if (!activeCategory.value) return [];
+  return allNewProducts.value.filter(product => 
+    product.categoryId === activeCategory.value
+  );
+});
+
+// 处理分类切换
+const handleCategoryChange = (categoryId: string) => {
+  activeCategory.value = categoryId;
+};
+
+// 订阅新品通知
+const subscribeNewsletter = () => {
+  if (!subscribeEmail.value || !/\S+@\S+\.\S+/.test(subscribeEmail.value)) {
+    ElMessage.warning('请输入有效的邮箱地址');
+    return;
   }
   
-  // 排序
-  if (sortBy.value === 'newest') {
-    result.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
-  } else if (sortBy.value === 'price-asc') {
-    result.sort((a, b) => parseInt(a.price.slice(1)) - parseInt(b.price.slice(1)))
-  } else if (sortBy.value === 'price-desc') {
-    result.sort((a, b) => parseInt(b.price.slice(1)) - parseInt(a.price.slice(1)))
-  } else if (sortBy.value === 'rating') {
-    result.sort((a, b) => b.rating - a.rating)
-  }
-  
-  return result
-})
+  ElMessage.success('订阅成功！我们会及时向您推送新品信息');
+  subscribeEmail.value = '';
+};
 
-// 分页相关计算属性
-const totalProducts = computed(() => filteredProducts.value.length)
-const totalPages = computed(() => Math.ceil(totalProducts.value / pageSize.value))
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredProducts.value.slice(start, end)
-})
+// 跳转到商品详情页
+const goToProduct = (productId: number) => {
+  router.push(`/product/${productId}`);
+};
 
-// 重置筛选
-const resetFilters = () => {
-  sortBy.value = 'newest'
-  categoryFilter.value = ''
-  priceFilter.value = ''
-  currentPage.value = 1
-}
+// 添加到购物车
+const addToCart = (product: any) => {
+  ElMessage.success(`已将 ${product.name} 加入购物车`);
+};
 
-// 页码变化
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  })
-}
+// 添加到收藏夹
+const addToFavorites = (product: any) => {
+  ElMessage.success(`已将 ${product.name} 加入收藏夹`);
+};
 
-// 模拟加载数据
+// 页面加载时获取数据
 onMounted(() => {
-  loading.value = true
-  // 模拟API请求延迟
-  setTimeout(() => {
-    loading.value = false
-  }, 800)
-})
+  fetchNewArrivalsData();
+});
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .new-arrivals-page {
   padding: 20px;
 }
 
 .page-header {
+  background-image: linear-gradient(to right, #6a11cb, #2575fc);
+  color: white;
+  padding: 40px 20px;
+  text-align: center;
+  border-radius: 10px;
   margin-bottom: 30px;
+  
+  .header-content {
+    h1 {
+      font-size: 32px;
+      margin: 0;
+      margin-bottom: 10px;
+    }
+    
+    p {
+      font-size: 16px;
+      margin: 0;
+      opacity: 0.8;
+    }
+  }
+}
+
+.section-title {
+  margin-bottom: 20px;
   text-align: center;
   
-  h1 {
-    font-size: 32px;
+  h2 {
+    font-size: 24px;
     margin-bottom: 10px;
   }
   
-  .page-description {
+  p {
     color: #666;
-    font-size: 16px;
+    margin: 0;
   }
 }
 
-.filter-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
+.banner-section {
+  margin-bottom: 40px;
   
-  .filter-select {
-    width: 100%;
-  }
-  
-  .filter-reset {
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-
-.product-link {
-  text-decoration: none;
-  color: inherit;
-}
-
-.product-card {
-  margin-bottom: 30px;
-  background-color: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-  }
-}
-
-.product-image-container {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-  
-  .product-image {
-    width: 100%;
+  .banner-item {
     height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end;
+    cursor: pointer;
   }
   
-  .new-tag {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: var(--el-color-primary);
-    color: #fff;
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 4px;
+  .banner-content {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+    padding: 30px;
+    color: white;
+    width: 100%;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    
+    .new-tag {
+      display: inline-block;
+      background-color: #ff6b6b;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    
+    h3 {
+      margin: 0;
+      margin-bottom: 10px;
+      font-size: 22px;
+    }
+    
+    p {
+      margin: 0;
+      margin-bottom: 15px;
+      opacity: 0.8;
+    }
+    
+    .banner-price {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
   }
 }
 
-.product-info {
-  padding: 15px;
+.category-section {
+  margin-bottom: 40px;
   
-  .product-name {
-    font-size: 16px;
-    margin-bottom: 10px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .category-tabs {
+    margin-top: 20px;
   }
   
-  .product-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .product-card {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+    cursor: pointer;
     
-    .product-price {
-      color: #ff6b6b;
-      font-weight: 600;
-      font-size: 18px;
+    &:hover {
+      transform: translateY(-5px);
+    }
+    
+    .product-image {
+      height: 200px;
+      position: relative;
+      overflow: hidden;
+      
+      .el-image {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.3s;
+      }
+      
+      &:hover .el-image {
+        transform: scale(1.05);
+      }
+      
+      .new-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: #ff6b6b;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+    }
+    
+    .product-info {
+      padding: 15px;
+      
+      .product-name {
+        margin: 0 0 10px;
+        font-size: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .product-price {
+        color: #ff6b6b;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      
+      .product-release-date {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 15px;
+      }
+      
+      .product-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        
+        .el-button {
+          flex-grow: 1;
+        }
+      }
+    }
+  }
+}
+
+.coming-soon-section {
+  margin-bottom: 40px;
+  
+  .timeline {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .timeline-item-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    
+    .timeline-product-image {
+      flex-shrink: 0;
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      
+      .el-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+    
+    .timeline-product-info {
+      h3 {
+        margin: 0 0 10px;
+      }
+      
+      p {
+        margin: 0 0 10px;
+        color: #666;
+      }
+      
+      .countdown {
+        color: #ff6b6b;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+    }
+  }
+}
+
+.subscribe-section {
+  background-color: #f9f9f9;
+  padding: 40px;
+  border-radius: 8px;
+  text-align: center;
+  
+  .subscribe-content {
+    max-width: 600px;
+    margin: 0 auto;
+    
+    h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    p {
+      margin-bottom: 20px;
+      color: #666;
+    }
+    
+    .subscribe-form {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      
+      .subscribe-input {
+        max-width: 400px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .banner-content {
+    padding: 15px !important;
+    
+    h3 {
+      font-size: 18px !important;
+    }
+    
+    p {
+      font-size: 14px !important;
+    }
+    
+    .banner-price {
+      font-size: 18px !important;
     }
   }
   
-  .product-release-date {
-    font-size: 12px;
-    color: #999;
+  .timeline-item-content {
+    flex-direction: column;
+    align-items: flex-start !important;
+    
+    .timeline-product-image {
+      width: 80px !important;
+      height: 80px !important;
+    }
   }
-}
-
-.pagination-container {
-  margin-top: 30px;
-  display: flex;
-  justify-content: center;
+  
+  .subscribe-form {
+    flex-direction: column;
+  }
 }
 </style>

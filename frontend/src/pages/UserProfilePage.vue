@@ -1,46 +1,47 @@
 <template>
   <div class="user-profile-page">
     <div class="page-header">
-      <h1>个人中心</h1>
+      <h1>用户中心</h1>
     </div>
     
-    <div class="user-profile-container">
-      <el-row :gutter="30">
-        <!-- 侧边栏 -->
+    <div class="user-profile-container" v-loading="loading">
+      <el-row :gutter="20">
+        <!-- 侧边栏菜单 -->
         <el-col :md="6" :sm="24">
           <div class="user-sidebar">
-            <div class="user-info">
-              <el-avatar :size="80" :icon="UserFilled" src="https://picsum.photos/id/1005/200/200"></el-avatar>
+            <div class="user-avatar">
+              <el-avatar :size="80" :src="userInfo.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"></el-avatar>
               <h3>{{ userInfo.username }}</h3>
-              <p>{{ userInfo.email }}</p>
             </div>
             
-            <el-menu 
-              class="user-menu" 
-              :default-active="activeMenu" 
-              @select="handleMenuSelect"
-            >
-              <el-menu-item index="account">
-                <el-icon><User /></el-icon>
-                <span>账户信息</span>
-              </el-menu-item>
-              <el-menu-item index="orders">
-                <el-icon><List /></el-icon>
-                <span>我的订单</span>
-              </el-menu-item>
-              <el-menu-item index="favorites">
-                <el-icon><Star /></el-icon>
-                <span>我的收藏</span>
-              </el-menu-item>
-              <el-menu-item index="address">
-                <el-icon><Location /></el-icon>
-                <span>收货地址</span>
-              </el-menu-item>
-              <el-menu-item index="security">
-                <el-icon><Lock /></el-icon>
-                <span>账户安全</span>
-              </el-menu-item>
-            </el-menu>
+            <div class="sidebar-menu">
+              <el-menu
+                :default-active="activeMenu"
+                class="user-menu"
+                @select="handleMenuSelect"
+              >
+                <el-menu-item index="account">
+                  <el-icon><User /></el-icon>
+                  <span>账户信息</span>
+                </el-menu-item>
+                <el-menu-item index="orders">
+                  <el-icon><UserFilled /></el-icon>
+                  <span>我的订单</span>
+                </el-menu-item>
+                <el-menu-item index="favorites">
+                  <el-icon><Star /></el-icon>
+                  <span>我的收藏</span>
+                </el-menu-item>
+                <el-menu-item index="address">
+                  <el-icon><Location /></el-icon>
+                  <span>收货地址</span>
+                </el-menu-item>
+                <el-menu-item index="security">
+                  <el-icon><Lock /></el-icon>
+                  <span>账户安全</span>
+                </el-menu-item>
+              </el-menu>
+            </div>
           </div>
         </el-col>
         
@@ -54,168 +55,156 @@
               
               <el-form :model="userInfo" label-width="100px">
                 <el-form-item label="用户名">
-                  <el-input v-model="userInfo.username" />
-                </el-form-item>
-                <el-form-item label="手机号码">
-                  <el-input v-model="userInfo.phone" />
-                </el-form-item>
-                <el-form-item label="电子邮箱">
-                  <el-input v-model="userInfo.email" />
+                  <el-input v-model="userInfo.username" disabled />
                 </el-form-item>
                 <el-form-item label="真实姓名">
-                  <el-input v-model="userInfo.realName" />
+                  <el-input v-model="userInfo.realName" placeholder="请输入真实姓名" />
                 </el-form-item>
                 <el-form-item label="性别">
                   <el-radio-group v-model="userInfo.gender">
-                    <el-radio :label="'male'">男</el-radio>
-                    <el-radio :label="'female'">女</el-radio>
-                    <el-radio :label="'other'">其他</el-radio>
+                    <el-radio label="male">男</el-radio>
+                    <el-radio label="female">女</el-radio>
+                    <el-radio label="other">其他</el-radio>
                   </el-radio-group>
                 </el-form-item>
-                <el-form-item label="出生日期">
+                <el-form-item label="生日">
                   <el-date-picker 
                     v-model="userInfo.birthday" 
                     type="date" 
-                    placeholder="选择日期"
-                    format="YYYY-MM-DD"
+                    placeholder="选择生日"
+                    value-format="YYYY-MM-DD"
                   />
                 </el-form-item>
+                <el-form-item label="手机号码">
+                  <el-input v-model="userInfo.phone" placeholder="请输入手机号码" />
+                </el-form-item>
+                <el-form-item label="邮箱">
+                  <el-input v-model="userInfo.email" disabled />
+                </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" @click="saveUserInfo">保存修改</el-button>
+                  <el-button type="primary" @click="saveUserInfo">保存</el-button>
                 </el-form-item>
               </el-form>
             </div>
             
-            <!-- 我的订单 -->
-            <div v-show="activeMenu === 'orders'" class="orders-info">
+            <!-- 订单列表 -->
+            <div v-show="activeMenu === 'orders'" class="orders-list">
               <h2>我的订单</h2>
               <el-divider />
               
-              <el-tabs v-model="orderTab">
-                <el-tab-pane label="全部订单" name="all">
-                  <div v-if="orders.length > 0">
-                    <div v-for="order in orders" :key="order.id" class="order-item">
-                      <div class="order-header">
-                        <span class="order-id">订单号: {{ order.id }}</span>
-                        <span class="order-date">{{ order.date }}</span>
-                        <span class="order-status">{{ order.status }}</span>
-                      </div>
-                      <div class="order-products">
-                        <div v-for="product in order.products" :key="product.id" class="product-item">
-                          <el-image :src="product.image" :alt="product.name" class="product-image"></el-image>
-                          <div class="product-info">
-                            <h4>{{ product.name }}</h4>
-                            <p>{{ product.price }} x {{ product.quantity }}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="order-footer">
-                        <div class="order-total">
-                          <span>订单总计：</span>
-                          <span class="price">¥{{ order.total }}</span>
-                        </div>
-                        <div class="order-actions">
-                          <el-button size="small" @click="viewOrderDetail(order.id)">订单详情</el-button>
-                          <el-button size="small" type="primary" v-if="order.status === '待付款'">立即付款</el-button>
-                          <el-button size="small" v-if="order.status === '待收货'">确认收货</el-button>
-                          <el-button size="small" v-if="['已完成', '已收货'].includes(order.status)">评价晒单</el-button>
-                        </div>
-                      </div>
+              <div v-for="order in orders" :key="order.id" class="order-item">
+                <div class="order-header">
+                  <div>
+                    <span>订单号: {{ order.id }}</span>
+                    <span style="margin-left: 20px">下单时间: {{ order.date }}</span>
+                  </div>
+                  <div class="order-status">{{ order.status }}</div>
+                </div>
+                <div class="order-products">
+                  <div v-for="(product, index) in order.products" :key="index" class="product-item">
+                    <div class="product-image">
+                      <el-image :src="product.image" fit="cover"></el-image>
+                    </div>
+                    <div class="product-info">
+                      <h4>{{ product.name }}</h4>
+                      <p>{{ product.price }} x {{ product.quantity }}</p>
                     </div>
                   </div>
-                  <el-empty v-else description="暂无订单记录" />
-                </el-tab-pane>
-                <el-tab-pane label="待付款" name="pending"></el-tab-pane>
-                <el-tab-pane label="待发货" name="processing"></el-tab-pane>
-                <el-tab-pane label="待收货" name="shipped"></el-tab-pane>
-                <el-tab-pane label="已完成" name="completed"></el-tab-pane>
-              </el-tabs>
+                </div>
+                <div class="order-footer">
+                  <div class="order-total">
+                    <span>订单金额: </span>
+                    <span class="price">¥{{ order.total }}</span>
+                  </div>
+                  <div>
+                    <el-button size="small" @click="viewOrderDetail(order.id)">查看详情</el-button>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <!-- 我的收藏 -->
-            <div v-show="activeMenu === 'favorites'" class="favorites-info">
+            <!-- 收藏列表 -->
+            <div v-show="activeMenu === 'favorites'" class="favorites-list">
               <h2>我的收藏</h2>
               <el-divider />
               
-              <div v-if="favorites.length > 0" class="favorites-grid">
-                <el-row :gutter="20">
-                  <el-col :span="8" v-for="item in favorites" :key="item.id">
-                    <div class="favorite-card">
-                      <div class="favorite-image">
-                        <el-image :src="item.image" fit="cover"></el-image>
-                      </div>
-                      <div class="favorite-info">
-                        <h4>{{ item.name }}</h4>
-                        <p class="price">{{ item.price }}</p>
-                        <div class="favorite-actions">
-                          <el-button size="small" type="primary">加入购物车</el-button>
-                          <el-button size="small" @click="removeFromFavorites(item.id)">取消收藏</el-button>
-                        </div>
+              <el-row :gutter="20">
+                <el-col :xs="24" :sm="12" :md="8" v-for="item in favorites" :key="item.id">
+                  <div class="favorite-item">
+                    <div class="favorite-image">
+                      <el-image :src="item.image" fit="cover"></el-image>
+                    </div>
+                    <div class="favorite-info">
+                      <h4>{{ item.name }}</h4>
+                      <p class="price">{{ item.price }}</p>
+                      <div class="favorite-actions">
+                        <el-button size="small" type="primary">加入购物车</el-button>
+                        <el-button 
+                          size="small" 
+                          type="danger" 
+                          icon="Delete" 
+                          circle
+                          @click="removeFromFavorites(item.id)"
+                        ></el-button>
                       </div>
                     </div>
-                  </el-col>
-                </el-row>
-              </div>
-              <el-empty v-else description="暂无收藏商品" />
+                  </div>
+                </el-col>
+              </el-row>
             </div>
             
             <!-- 收货地址 -->
-            <div v-show="activeMenu === 'address'" class="address-info">
+            <div v-show="activeMenu === 'address'" class="address-list">
               <h2>收货地址</h2>
               <el-divider />
               
               <div class="address-actions">
-                <el-button type="primary" @click="showAddressDialog = true">添加新地址</el-button>
+                <el-button type="primary" @click="addAddress">新增地址</el-button>
               </div>
               
-              <div v-if="addresses.length > 0" class="address-list">
-                <div v-for="address in addresses" :key="address.id" class="address-item">
-                  <div class="address-content">
-                    <div class="address-tags">
-                      <el-tag v-if="address.isDefault" type="danger" size="small">默认</el-tag>
-                    </div>
-                    <h4>{{ address.name }} {{ address.phone }}</h4>
-                    <p>{{ address.province }} {{ address.city }} {{ address.district }} {{ address.detail }}</p>
-                  </div>
-                  <div class="address-actions">
-                    <el-button size="small" @click="editAddress(address)">编辑</el-button>
-                    <el-button size="small" type="danger" @click="deleteAddress(address.id)">删除</el-button>
-                    <el-button size="small" v-if="!address.isDefault" @click="setDefaultAddress(address.id)">设为默认</el-button>
-                  </div>
+              <div v-for="address in addresses" :key="address.id" class="address-item">
+                <div class="address-content">
+                  <div class="default-tag" v-if="address.isDefault">默认</div>
+                  <h4>{{ address.name }} {{ address.phone }}</h4>
+                  <p>{{ address.province }} {{ address.city }} {{ address.district }}</p>
+                  <p>{{ address.detail }}</p>
+                </div>
+                <div class="address-actions">
+                  <el-button size="small" @click="editAddress(address)">编辑</el-button>
+                  <el-button 
+                    size="small" 
+                    @click="setDefaultAddress(address.id)" 
+                    :disabled="address.isDefault"
+                  >设为默认</el-button>
+                  <el-button 
+                    size="small" 
+                    type="danger" 
+                    @click="deleteAddress(address.id)"
+                    :disabled="address.isDefault"
+                  >删除</el-button>
                 </div>
               </div>
-              <el-empty v-else description="暂无收货地址" />
               
-              <!-- 地址表单对话框 -->
+              <!-- 地址编辑对话框 -->
               <el-dialog
                 v-model="showAddressDialog"
                 :title="editingAddress ? '编辑地址' : '新增地址'"
                 width="500px"
               >
-                <el-form :model="addressForm" label-width="80px">
+                <el-form :model="addressForm" label-width="100px">
                   <el-form-item label="收货人">
-                    <el-input v-model="addressForm.name" placeholder="请输入收货人姓名" />
+                    <el-input v-model="addressForm.name" placeholder="请输入收货人姓名"></el-input>
                   </el-form-item>
                   <el-form-item label="手机号码">
-                    <el-input v-model="addressForm.phone" placeholder="请输入手机号码" />
+                    <el-input v-model="addressForm.phone" placeholder="请输入手机号码"></el-input>
                   </el-form-item>
                   <el-form-item label="所在地区">
-                    <el-select v-model="addressForm.province" placeholder="省份" style="width: 120px; margin-right: 10px;">
-                      <el-option label="北京市" value="北京市"></el-option>
-                      <el-option label="上海市" value="上海市"></el-option>
-                      <el-option label="广东省" value="广东省"></el-option>
-                    </el-select>
-                    <el-select v-model="addressForm.city" placeholder="城市" style="width: 120px; margin-right: 10px;">
-                      <el-option label="广州市" value="广州市"></el-option>
-                      <el-option label="深圳市" value="深圳市"></el-option>
-                    </el-select>
-                    <el-select v-model="addressForm.district" placeholder="区县" style="width: 120px;">
-                      <el-option label="天河区" value="天河区"></el-option>
-                      <el-option label="海珠区" value="海珠区"></el-option>
-                    </el-select>
+                    <el-input v-model="addressForm.province" placeholder="省份" style="width: 30%; margin-right: 5px"></el-input>
+                    <el-input v-model="addressForm.city" placeholder="城市" style="width: 30%; margin-right: 5px"></el-input>
+                    <el-input v-model="addressForm.district" placeholder="区县" style="width: 30%"></el-input>
                   </el-form-item>
                   <el-form-item label="详细地址">
-                    <el-input v-model="addressForm.detail" type="textarea" :rows="2" placeholder="请输入详细地址信息"></el-input>
+                    <el-input v-model="addressForm.detail" type="textarea" rows="2"></el-input>
                   </el-form-item>
                   <el-form-item>
                     <el-checkbox v-model="addressForm.isDefault">设为默认收货地址</el-checkbox>
@@ -292,114 +281,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { 
   User, UserFilled, List, Star, 
   Location, Lock
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import mockService from '@/services/mockService'
+
+// 加载状态
+const loading = ref(true)
 
 // 当前激活的菜单
 const activeMenu = ref('account')
 
 // 用户信息
 const userInfo = reactive({
-  username: '张小明',
-  phone: '138****6666',
-  email: 'example@email.com',
-  realName: '张明',
-  gender: 'male',
-  birthday: '1990-01-01',
+  username: '',
+  email: '',
+  phone: '',
+  realName: '',
+  gender: '',
+  birthday: '',
   avatar: ''
 })
 
-// 订单相关
-const orderTab = ref('all')
-const orders = ref([
-  {
-    id: 'ORD20250415001',
-    date: '2025-04-15 14:30:21',
-    status: '待付款',
-    total: '1299.00',
-    products: [
-      {
-        id: 1,
-        name: '智能手表Pro',
-        price: '¥999.00',
-        quantity: 1,
-        image: 'https://picsum.photos/id/26/100/100'
-      },
-      {
-        id: 2,
-        name: '无线充电器',
-        price: '¥300.00',
-        quantity: 1,
-        image: 'https://picsum.photos/id/27/100/100'
-      }
-    ]
-  },
-  {
-    id: 'ORD20250413002',
-    date: '2025-04-13 09:15:33',
-    status: '已完成',
-    total: '299.00',
-    products: [
-      {
-        id: 3,
-        name: '无线蓝牙耳机',
-        price: '¥299.00',
-        quantity: 1,
-        image: 'https://picsum.photos/id/28/100/100'
-      }
-    ]
-  }
-])
+// 订单列表
+const orders = ref([])
 
 // 收藏商品
-const favorites = ref([
-  {
-    id: 1,
-    name: '智能手表Pro',
-    price: '¥999.00',
-    image: 'https://picsum.photos/id/26/300/300'
-  },
-  {
-    id: 2,
-    name: '无线蓝牙耳机',
-    price: '¥299.00',
-    image: 'https://picsum.photos/id/28/300/300'
-  },
-  {
-    id: 3,
-    name: '4K高清投影仪',
-    price: '¥3999.00',
-    image: 'https://picsum.photos/id/30/300/300'
-  }
-])
+const favorites = ref([])
 
 // 收货地址
-const addresses = ref([
-  {
-    id: 1,
-    name: '张小明',
-    phone: '13812345678',
-    province: '广东省',
-    city: '深圳市',
-    district: '南山区',
-    detail: '科技园南路88号智汇大厦3栋1001室',
-    isDefault: true
-  },
-  {
-    id: 2,
-    name: '张小明',
-    phone: '13812345678',
-    province: '广东省',
-    city: '广州市',
-    district: '天河区',
-    detail: '天河路385号太古汇1期北塔12楼',
-    isDefault: false
+const addresses = ref([])
+
+// 获取用户数据
+const fetchUserData = async () => {
+  try {
+    loading.value = true
+    
+    // 获取用户信息
+    const userData = await mockService.getUserData()
+    Object.assign(userInfo, userData)
+    
+    // 获取订单数据
+    const ordersData = await mockService.getOrdersData()
+    orders.value = ordersData
+    
+    // 获取收藏数据
+    const favoritesData = await mockService.getFavoritesData()
+    favorites.value = favoritesData
+    
+    // 获取地址数据
+    const addressesData = await mockService.getAddressesData()
+    addresses.value = addressesData
+  } catch (error) {
+    console.error('获取用户数据失败', error)
+    ElMessage.error('获取用户数据失败')
+  } finally {
+    loading.value = false
   }
-])
+}
 
 // 地址表单
 const showAddressDialog = ref(false)
@@ -442,6 +384,20 @@ const viewOrderDetail = (orderId: string) => {
 const removeFromFavorites = (itemId: number) => {
   favorites.value = favorites.value.filter(item => item.id !== itemId)
   ElMessage.success('已从收藏夹移除')
+}
+
+// 新增地址
+const addAddress = () => {
+  editingAddress.value = null
+  addressForm.id = null
+  addressForm.name = ''
+  addressForm.phone = ''
+  addressForm.province = ''
+  addressForm.city = ''
+  addressForm.district = ''
+  addressForm.detail = ''
+  addressForm.isDefault = false
+  showAddressDialog.value = true
 }
 
 // 编辑地址
@@ -532,6 +488,11 @@ const changePassword = () => {
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchUserData()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -559,22 +520,18 @@ const changePassword = () => {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px 0;
   margin-bottom: 20px;
   
-  .user-info {
-    padding: 30px 20px;
+  .user-avatar {
     text-align: center;
-    border-bottom: 1px solid #eee;
+    padding: 20px 0;
+    border-bottom: 1px solid #f0f0f0;
     
     h3 {
-      margin: 15px 0 5px;
+      margin-top: 10px;
+      margin-bottom: 0;
       font-size: 18px;
-    }
-    
-    p {
-      color: #999;
-      font-size: 14px;
-      margin: 0;
     }
   }
   
@@ -583,165 +540,93 @@ const changePassword = () => {
   }
 }
 
-// 内容区样式
+// 内容面板
 .content-panel {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 30px;
-  min-height: 600px;
   
   h2 {
+    margin-top: 0;
     font-size: 20px;
-    margin: 0;
-    padding-bottom: 10px;
   }
 }
 
-// 订单列表
-.order-item {
-  border: 1px solid #eee;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  
-  .order-header {
-    background: #f8f8f8;
-    padding: 15px;
+// 收藏列表
+.favorites-list {
+  .favorite-item {
     display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    
-    .order-status {
-      color: var(--el-color-danger);
-      font-weight: bold;
-    }
-  }
-  
-  .order-products {
-    padding: 15px;
-    
-    .product-item {
-      display: flex;
-      margin-bottom: 10px;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-      
-      .product-image {
-        width: 80px;
-        height: 80px;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-right: 15px;
-      }
-      
-      .product-info {
-        h4 {
-          margin: 0 0 8px;
-          font-size: 16px;
-        }
-        
-        p {
-          color: #666;
-          margin: 0;
-        }
-      }
-    }
-  }
-  
-  .order-footer {
-    padding: 15px;
-    background: #f8f8f8;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    
-    .order-total {
-      .price {
-        font-size: 18px;
-        color: var(--el-color-danger);
-        font-weight: bold;
-      }
-    }
-    
-    .order-actions {
-      display: flex;
-      gap: 10px;
-    }
-  }
-}
-
-// 收藏商品
-.favorites-grid {
-  .favorite-card {
-    background: #fff;
+    background: #f9f9f9;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
     
     .favorite-image {
-      height: 200px;
-      overflow: hidden;
+      width: 120px;
+      height: 120px;
+      flex-shrink: 0;
       
-      img {
+      .el-image {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s;
-        
-        &:hover {
-          transform: scale(1.05);
-        }
       }
     }
     
     .favorite-info {
+      flex-grow: 1;
       padding: 15px;
+      display: flex;
+      flex-direction: column;
       
       h4 {
         margin: 0 0 10px;
         font-size: 16px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
       
       .price {
-        color: var(--el-color-danger);
+        color: #ff6b6b;
         font-weight: bold;
-        margin-bottom: 15px;
+        margin-bottom: auto;
       }
       
       .favorite-actions {
         display: flex;
         gap: 10px;
+        margin-top: 10px;
       }
     }
   }
 }
 
-// 地址管理
-.address-actions {
-  margin-bottom: 20px;
-}
-
+// 地址列表
 .address-list {
+  .address-actions {
+    margin-bottom: 20px;
+  }
+  
   .address-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
     border: 1px solid #eee;
     border-radius: 8px;
+    padding: 15px;
     margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
     
     .address-content {
-      flex: 1;
+      position: relative;
+      padding-right: 20px;
       
-      .address-tags {
-        margin-bottom: 10px;
+      .default-tag {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #ff6b6b;
+        color: #fff;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 4px;
       }
       
       h4 {
@@ -799,21 +684,14 @@ const changePassword = () => {
   .order-item {
     .order-footer {
       flex-direction: column;
-      align-items: flex-start;
-      
-      .order-actions {
-        margin-top: 15px;
-      }
+      gap: 10px;
     }
   }
   
-  .address-item {
+  .security-item {
     flex-direction: column;
-    
-    .address-actions {
-      flex-direction: row !important;
-      margin-top: 15px !important;
-    }
+    align-items: flex-start;
+    gap: 15px;
   }
 }
 </style>

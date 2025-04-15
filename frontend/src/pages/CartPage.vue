@@ -4,7 +4,7 @@
       <h1>购物车</h1>
     </div>
     
-    <div class="cart-container">
+    <div class="cart-container" v-loading="loading">
       <template v-if="cartItems.length > 0">
         <!-- 购物车商品列表 -->
         <div class="cart-list">
@@ -83,7 +83,6 @@
             <el-button size="small" @click="batchRemove">批量删除</el-button>
             <el-button size="small" @click="clearCart">清空购物车</el-button>
           </div>
-          
           <div class="cart-total">
             <div class="total-info">
               <p>已选择 <span class="highlighted">{{ selectedItems.length }}</span> 件商品</p>
@@ -127,102 +126,45 @@
           </template>
           <el-button type="primary" @click="goToShopping">去购物</el-button>
         </el-empty>
-        
-        <!-- 猜你喜欢 -->
-        <div class="recommended-section">
-          <h2 class="section-title">猜你喜欢</h2>
-          <el-row :gutter="20">
-            <el-col :xs="12" :sm="8" :md="6" v-for="item in recommendedProducts" :key="item.id">
-              <div class="product-card">
-                <div class="product-image-container">
-                  <el-image :src="item.image" fit="cover"></el-image>
-                </div>
-                <div class="product-info">
-                  <h4>{{ item.name }}</h4>
-                  <p class="product-price">{{ item.price }}</p>
-                  <el-button type="primary" size="small" @click="addToCart(item)">加入购物车</el-button>
-                </div>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { Delete, Star } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import mockService from '@/services/mockService'
 
 const router = useRouter()
+const loading = ref(true)
 
 // 购物车商品数据
-const cartItems = ref([
-  {
-    id: 1,
-    name: '智能手表Pro',
-    price: '¥999.00',
-    originalPrice: '¥1599.00',
-    quantity: 1,
-    image: 'https://picsum.photos/id/26/300/300',
-    attributes: {
-      '颜色': '黑色',
-      '尺寸': '42mm'
-    },
-    selected: true
-  },
-  {
-    id: 2,
-    name: '无线蓝牙耳机',
-    price: '¥299.00',
-    originalPrice: '¥399.00',
-    quantity: 2,
-    image: 'https://picsum.photos/id/28/300/300',
-    attributes: {
-      '颜色': '白色'
-    },
-    selected: true
-  },
-  {
-    id: 3,
-    name: '超薄移动电源',
-    price: '¥149.00',
-    quantity: 1,
-    image: 'https://picsum.photos/id/12/300/300',
-    selected: false
-  }
-])
-
+const cartItems = ref([])
 // 推荐商品
-const recommendedProducts = ref([
-  {
-    id: 101,
-    name: '机械键盘',
-    price: '¥499.00',
-    image: 'https://picsum.photos/id/60/300/300'
-  },
-  {
-    id: 102,
-    name: '高清摄像头',
-    price: '¥349.00',
-    image: 'https://picsum.photos/id/61/300/300'
-  },
-  {
-    id: 103,
-    name: '降噪耳机',
-    price: '¥799.00',
-    image: 'https://picsum.photos/id/62/300/300'
-  },
-  {
-    id: 104,
-    name: '智能台灯',
-    price: '¥239.00',
-    image: 'https://picsum.photos/id/63/300/300'
+const recommendedProducts = ref([])
+
+// 获取购物车和推荐数据
+const fetchCartData = async () => {
+  try {
+    loading.value = true
+    
+    // 获取购物车数据
+    const cartData = await mockService.getCartData()
+    cartItems.value = cartData.items
+    
+    // 获取推荐商品
+    const recommendedData = await mockService.getRecommendedProducts()
+    recommendedProducts.value = recommendedData
+  } catch (error) {
+    console.error('获取购物车数据失败', error)
+    ElMessage.error('获取购物车数据失败')
+  } finally {
+    loading.value = false
   }
-])
+}
 
 // 被选中的商品
 const selectedItems = computed(() => {
@@ -407,6 +349,11 @@ const addToCart = (product) => {
     ElMessage.success('商品已添加到购物车')
   }
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchCartData()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -493,15 +440,15 @@ const addToCart = (product) => {
   background: #f9f9f9;
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 40px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
+  margin-bottom: 30px;
   
   .cart-ops {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
   }
   
   .cart-total {
@@ -509,38 +456,31 @@ const addToCart = (product) => {
     align-items: center;
     
     .total-info {
-      margin-right: 40px;
-      text-align: right;
+      margin-right: 30px;
       
       p {
         margin: 5px 0;
+        font-size: 14px;
         
         .highlighted {
           font-weight: 600;
           
-          &.price {
+          &.price, &.discount {
             color: #ff6b6b;
-          }
-          
-          &.discount {
-            color: #67c23a;
           }
         }
       }
     }
     
     .checkout-action {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      
       .final-price {
         margin: 0 0 10px;
+        font-size: 18px;
         
         span {
           color: #ff6b6b;
+          font-weight: 700;
           font-size: 24px;
-          font-weight: bold;
         }
       }
     }
