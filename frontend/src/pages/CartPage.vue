@@ -146,25 +146,20 @@ const cartItems = ref([])
 // 推荐商品
 const recommendedProducts = ref([])
 
-// 获取购物车和推荐数据
+// 获取购物车数据
 const fetchCartData = async () => {
   try {
-    loading.value = true
-    
-    // 获取购物车数据
-    const cartData = await mockService.getCartData()
-    cartItems.value = cartData.items
-    
-    // 获取推荐商品
-    const recommendedData = await mockService.getRecommendedProducts()
-    recommendedProducts.value = recommendedData
+    loading.value = true;
+    const data = await mockService.getCartItems();
+    cartItems.value = data.items;
+    updateSelectedTotal();
   } catch (error) {
-    console.error('获取购物车数据失败', error)
-    ElMessage.error('获取购物车数据失败')
+    console.error('获取购物车数据失败', error);
+    ElMessage.error('获取购物车数据失败');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 被选中的商品
 const selectedItems = computed(() => {

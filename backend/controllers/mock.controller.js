@@ -664,6 +664,48 @@ const getRelatedProducts = (req, res) => {
   }
 };
 
+// 创建新商品
+const createProduct = (req, res) => {
+  try {
+    const newProduct = {
+      id: Date.now(), // 模拟自增ID
+      ...req.body,
+      releaseDate: new Date().toISOString().split('T')[0]
+    };
+    res.status(201).json(newProduct);
+  } catch (error) {
+    console.error('创建商品失败:', error);
+    res.status(500).json({ message: '创建商品失败' });
+  }
+};
+
+// 更新商品
+const updateProduct = (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedProduct = {
+      id: parseInt(id),
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error('更新商品失败:', error);
+    res.status(500).json({ message: '更新商品失败' });
+  }
+};
+
+// 删除商品
+const deleteProduct = (req, res) => {
+  try {
+    const { id } = req.params;
+    res.status(204).send();
+  } catch (error) {
+    console.error('删除商品失败:', error);
+    res.status(500).json({ message: '删除商品失败' });
+  }
+};
+
 // 导出所有控制器函数
 export default {
   getHomeData,
@@ -682,6 +724,9 @@ export default {
   addToCart,
   updateCartItem,
   deleteCartItem,
-  getRelatedProducts
+  getRelatedProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct
 };
 

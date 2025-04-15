@@ -220,4 +220,13 @@ router.get("/favorites", mock.getFavoritesData);
 // 获取地址数据
 router.get("/addresses", mock.getAddressesData);
 
+// 创建新商品
+router.post("/products", mock.createProduct);
+
+// 更新商品
+router.put("/products/:id", mock.updateProduct);
+
+// 删除商品
+router.delete("/products/:id", mock.deleteProduct);
+
 export default router;
