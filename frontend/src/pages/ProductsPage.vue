@@ -190,10 +190,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import mockService from '@/services/mockService';
+import { ElMessage } from 'element-plus';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
@@ -432,59 +432,100 @@ onMounted(() => {
 });
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .products-page {
   padding: 20px;
-  min-height: 80vh;
 }
 
 .filter-section {
-  position: sticky;
-  top: 20px;
-  
   .filter-card {
-    background: #fff;
-    border-radius: 8px;
     padding: 15px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    
+    border-radius: 8px;
+    background-color: var(--el-bg-color);
+    box-shadow: var(--el-box-shadow-lighter);
+
     h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-size: 18px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-    }
-    
-    .category-list,
-    .brand-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      
-      .el-checkbox {
-        margin-right: 0;
-        margin-left: 0;
-      }
-    }
-    
-    .price-range {
-      .price-inputs {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 15px;
-      }
-    }
-    
-    .rating-item {
-      margin-bottom: 8px;
+      margin: 0 0 15px;
+      font-size: 16px;
+      color: var(--el-text-color-primary);
     }
   }
-  
+
+  .category-list,
+  .brand-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    :deep(.el-checkbox) {
+      margin-right: 0;
+      width: 100%;
+      
+      .el-checkbox__label {
+        color: var(--el-text-color-regular);
+      }
+    }
+
+    :deep(.el-checkbox.is-bordered) {
+      background-color: var(--el-bg-color);
+      border-color: var(--el-border-color);
+      margin-bottom: 0;
+
+      &:hover {
+        border-color: var(--el-color-primary);
+      }
+
+      &.is-checked {
+        background-color: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
+
+        .el-checkbox__label {
+          color: var(--el-color-primary);
+        }
+      }
+    }
+  }
+
+  .price-range {
+    .price-inputs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+
+      span {
+        color: var(--el-text-color-regular);
+      }
+
+      :deep(.el-input__wrapper) {
+        background-color: var(--el-bg-color);
+      }
+    }
+  }
+
+  .rating-filter {
+    .rating-item {
+      margin-bottom: 10px;
+
+      :deep(.el-checkbox) {
+        display: flex;
+        align-items: center;
+        margin-right: 0;
+
+        .el-checkbox__label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--el-text-color-regular);
+        }
+      }
+    }
+  }
+
   .el-button {
     margin-right: 10px;
+    margin-bottom: 10px;
   }
 }
 

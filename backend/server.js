@@ -2,7 +2,9 @@ import cors from "cors";
 import { config } from 'dotenv';
 import express from "express";
 import path, { dirname } from "path";
+import swaggerUi from 'swagger-ui-express';
 import { fileURLToPath } from 'url';
+import swaggerSpecs from './config/swagger.js';
 import db from "./models/index.js";
 
 // 初始化环境变量
@@ -16,7 +18,7 @@ const app = express();
 
 // 跨域配置
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000", "http://localhost:5000"]
+  origin: ["http://localhost:5173", "http://localhost:5000"]
 }));
 
 // 解析 application/json
@@ -49,13 +51,23 @@ import productRoutes from "./routes/product.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 // 应用路由
-productRoutes(app);
-categoryRoutes(app);
-userRoutes(app);
-mockRoutes(app);  // 添加mock路由
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/mock", mockRoutes);
 
-// 设置端口并监听请求
+// API 文档路由
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: '服务器内部错误' });
+});
+
+// 设置端口
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}.`);
+  console.log(`服务器运行在端口 ${PORT}。`);
+  console.log(`API 文档地址：http://localhost:${PORT}/api-docs`);
 });

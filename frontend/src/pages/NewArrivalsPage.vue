@@ -139,10 +139,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import mockService from '@/services/mockService';
+import { ElMessage } from 'element-plus';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const loading = ref(true);
@@ -464,32 +464,52 @@ onMounted(() => {
 }
 
 .subscribe-section {
-  background-color: #f9f9f9;
-  padding: 40px;
-  border-radius: 8px;
-  text-align: center;
+  padding: 60px 0;
+  background-color: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--el-border-color-light);
   
   .subscribe-content {
     max-width: 600px;
     margin: 0 auto;
+    text-align: center;
     
     h2 {
-      margin-top: 0;
-      margin-bottom: 15px;
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--el-text-color-primary);
     }
     
     p {
-      margin-bottom: 20px;
-      color: #666;
+      font-size: 16px;
+      margin-bottom: 24px;
+      color: var(--el-text-color-regular);
     }
     
     .subscribe-form {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       justify-content: center;
       
       .subscribe-input {
-        max-width: 400px;
+        width: 320px;
+        
+        :deep(.el-input__wrapper) {
+          background-color: var(--el-bg-color-overlay);
+          border-color: var(--el-border-color);
+          
+          &:hover, &:focus {
+            border-color: var(--el-color-primary);
+          }
+          
+          .el-input__inner {
+            color: var(--el-text-color-primary);
+            
+            &::placeholder {
+              color: var(--el-text-color-placeholder);
+            }
+          }
+        }
       }
     }
   }

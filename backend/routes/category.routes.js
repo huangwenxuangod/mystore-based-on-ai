@@ -2,26 +2,24 @@ import express from "express";
 import categories from "../controllers/category.controller.js";
 import { authJwt } from "../middleware/index.js";
 
-export default app => {
-  const router = express.Router();
+const router = express.Router();
 
-  // 创建新分类 (仅管理员)
-  router.post("/", [authJwt.verifyToken, authJwt.isAdmin], categories.create);
+// 创建新分类 (仅管理员)
+router.post("/", [authJwt.verifyToken, authJwt.isAdmin], categories.create);
 
-  // 获取所有分类
-  router.get("/", categories.findAll);
+// 获取所有分类
+router.get("/", categories.findAll);
 
-  // 获取分类及其产品
-  router.get("/with-products", categories.findCategoryWithProducts);
+// 获取分类及其产品
+router.get("/with-products", categories.findCategoryWithProducts);
 
-  // 根据ID获取单个分类
-  router.get("/:id", categories.findOne);
+// 根据ID获取单个分类
+router.get("/:id", categories.findOne);
 
-  // 更新分类 (仅管理员)
-  router.put("/:id", [authJwt.verifyToken, authJwt.isAdmin], categories.update);
+// 更新分类 (仅管理员)
+router.put("/:id", [authJwt.verifyToken, authJwt.isAdmin], categories.update);
 
-  // 删除分类 (仅管理员)
-  router.delete("/:id", [authJwt.verifyToken, authJwt.isAdmin], categories.remove);
+// 删除分类 (仅管理员)
+router.delete("/:id", [authJwt.verifyToken, authJwt.isAdmin], categories.remove);
 
-  app.use("/api/categories", router);
-};
+export default router;

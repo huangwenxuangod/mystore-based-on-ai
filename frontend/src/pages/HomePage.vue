@@ -5,10 +5,10 @@
     
     <!-- 特色服务区 -->
     <div class="featured-section">
-      <el-row :gutter="20">
-        <el-col :span="6" v-for="(feature, index) in features" :key="index">
+      <el-row :gutter="10">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6" v-for="(feature, index) in features" :key="index">
           <div class="feature-card">
-            <component :is="getIconComponent(feature.icon)" size="30" class="feature-icon"></component>
+            <component :is="getIconComponent(feature.icon)" size="16" class="feature-icon"></component>
             <h3>{{ feature.title }}</h3>
             <p>{{ feature.description }}</p>
           </div>
@@ -48,13 +48,9 @@
     <div class="brands-section">
       <h2 class="section-title">合作品牌</h2>
       <el-row :gutter="20">
-        <el-col :span="4" v-for="i in 6" :key="i">
+        <el-col :span="4" v-for="(brand, index) in brands" :key="index">
           <div class="brand-card">
-            <el-image 
-              :src="`https://picsum.photos/id/${i+10}/200/200`" 
-              fit="contain"
-              class="brand-image"
-            />
+            <el-image :src="brand.logo" fit="contain"></el-image>
           </div>
         </el-col>
       </el-row>
@@ -63,11 +59,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import carousel from '@/components/carousel.vue'
-import Products from '@/components/Products.vue'
-import { ShoppingBag, TrendCharts, Service, Promotion } from '@element-plus/icons-vue'
-import mockService from '@/services/mockService';
+import carousel from '@/components/carousel.vue';
+import Products from '@/components/Products.vue';
+import { useMockStore } from '@/stores/mock';
+import { Promotion, Service, ShoppingBag, TrendCharts } from '@element-plus/icons-vue';
+import { onMounted, ref } from 'vue';
+
+const mockStore = useMockStore()
 
 // 加载中状态
 const loading = ref(true);
@@ -77,6 +75,14 @@ const features = ref([]);
 const hotProducts = ref([]);
 const newProducts = ref([]);
 const recommendedProducts = ref([]);
+const brands = ref([
+  { logo: 'https://picsum.photos/id/1/200/100' },
+  { logo: 'https://picsum.photos/id/2/200/100' },
+  { logo: 'https://picsum.photos/id/3/200/100' },
+  { logo: 'https://picsum.photos/id/4/200/100' },
+  { logo: 'https://picsum.photos/id/5/200/100' },
+  { logo: 'https://picsum.photos/id/6/200/100' }
+])
 
 // 获取图标组件
 const getIconComponent = (iconName: string) => {
@@ -94,7 +100,7 @@ const getIconComponent = (iconName: string) => {
 const fetchHomeData = async () => {
   try {
     loading.value = true;
-    const data = await mockService.getHomeData();
+    const data = await mockStore.getHomeData();
     features.value = data.features;
     hotProducts.value = data.hotProducts;
     newProducts.value = data.newProducts;
@@ -114,141 +120,121 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .home-page {
-  padding: 20px;
+  padding: 15px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .featured-section {
-  margin: 30px 0;
-  
-  .feature-card {
-    padding: 30px 20px;
-    text-align: center;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    height: 100%;
-    background-color: var(--el-bg-color);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-    
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .feature-icon {
-      color: #409eff;
-      margin-bottom: 15px;
-    }
-    
-    h3 {
-      font-size: 18px;
-      margin: 10px 0;
-    }
-    
-    p {
-      font-size: 14px;
-      color: #666;
-      margin: 0;
-    }
-  }
+  margin: 20px auto;
+  max-width: 900px;
 }
 
-.section-title {
-  font-size: 24px;
-  margin-bottom: 20px;
-  position: relative;
-  padding-left: 15px;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    background-color: #409eff;
-    border-radius: 2px;
-  }
+.feature-card {
+  text-align: center;
+  padding: 10px;
+  background-color: var(--el-bg-color);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  margin-bottom: 10px;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+  margin-bottom: 8px;
+  color: var(--el-color-primary);
+  font-size: 16px;
+}
+
+.feature-card h3 {
+  margin: 6px 0;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+
+.feature-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
 }
 
 .recommended-section {
   margin: 40px 0;
-  
-  .product-card {
-    background: var(--el-bg-color);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    transition: all 0.3s;
-    height: 100%;
-    
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    }
-    
-    .product-image {
-      height: 200px;
-      overflow: hidden;
-      
-      .el-image {
-        width: 100%;
-        height: 100%;
-        transition: transform 0.3s;
-        
-        &:hover {
-          transform: scale(1.05);
-        }
-      }
-    }
-    
-    .product-info {
-      padding: 15px;
-      
-      h3 {
-        margin: 0 0 10px;
-        font-size: 16px;
-      }
-      
-      .price {
-        color: #ff6b6b;
-        font-weight: bold;
-        margin: 10px 0;
-      }
-      
-      .rating {
-        margin-bottom: 15px;
-      }
-    }
-  }
+}
+
+.section-title {
+  margin-bottom: 24px;
+  font-size: 24px;
+  color: var(--el-text-color-primary);
+  text-align: center;
+}
+
+.product-card {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  margin-bottom: 20px;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+}
+
+.product-image {
+  height: 200px;
+  overflow: hidden;
+}
+
+.product-info {
+  padding: 16px;
+}
+
+.product-info h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+.price {
+  margin: 8px 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--el-color-primary);
+}
+
+.rating {
+  margin: 8px 0;
 }
 
 .brands-section {
   margin: 40px 0;
-  
-  .brand-card {
-    padding: 20px;
-    background: var(--el-bg-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    transition: all 0.3s;
-    height: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    }
-    
-    .brand-image {
-      max-width: 100%;
-      max-height: 60px;
-    }
-  }
+}
+
+.brand-card {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-image) {
+  width: 100%;
+  height: 100%;
+}
+
+:deep(.el-button) {
+  width: 100%;
+  margin-top: 8px;
 }
 
 @media (max-width: 768px) {

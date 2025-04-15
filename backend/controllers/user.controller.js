@@ -61,7 +61,6 @@ const login = async (req, res) => {
       });
     }
 
-    // 创建token
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: 86400 // 24小时
     });
@@ -70,13 +69,10 @@ const login = async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
-      isAdmin: user.isAdmin,
       accessToken: token
     });
   } catch (err) {
-    res.status(500).send({
-      message: err.message || "登录时出现错误。"
-    });
+    res.status(500).send({ message: err.message });
   }
 };
 
@@ -86,46 +82,34 @@ const getCurrentUser = async (req, res) => {
     const user = await User.findByPk(req.userId, {
       attributes: { exclude: ['password'] }
     });
-
     if (!user) {
       return res.status(404).send({ message: "用户不存在。" });
     }
-
     res.status(200).send(user);
   } catch (err) {
-    res.status(500).send({
-      message: err.message || "获取用户信息时出现错误。"
-    });
+    res.status(500).send({ message: err.message });
   }
 };
 
 // 更新用户信息
 const updateUser = async (req, res) => {
   try {
-    // 不允许更新用户名和邮箱
-    const updateData = { ...req.body };
-    delete updateData.username;
-    delete updateData.email;
-    delete updateData.password;
-    delete updateData.isAdmin;
-
-    const num = await User.update(updateData, {
-      where: { id: req.userId }
-    });
-
-    if (num == 1) {
-      res.send({
-        message: "用户信息更新成功。"
-      });
-    } else {
-      res.send({
-        message: "无法更新用户信息。"
-      });
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
     }
-  } catch (err) {
-    res.status(500).send({
-      message: err.message || "更新用户信息时出现错误。"
+
+    await user.update({
+      realName: req.body.realName,
+      phone: req.body.phone,
+      gender: req.body.gender,
+      birthday: req.body.birthday,
+      avatar: req.body.avatar
     });
+
+    res.status(200).send({ message: "用户信息更新成功！" });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
   }
 };
 
@@ -133,7 +117,6 @@ const updateUser = async (req, res) => {
 const updatePassword = async (req, res) => {
   try {
     const user = await User.findByPk(req.userId);
-
     if (!user) {
       return res.status(404).send({ message: "用户不存在。" });
     }
@@ -144,29 +127,73 @@ const updatePassword = async (req, res) => {
     );
 
     if (!passwordIsValid) {
-      return res.status(401).send({ message: "当前密码错误！" });
+      return res.status(401).send({ message: "原密码错误！" });
     }
 
-    const hashedPassword = bcrypt.hashSync(req.body.newPassword, 8);
-
-    const num = await User.update(
-      { password: hashedPassword },
-      { where: { id: req.userId } }
-    );
-
-    if (num == 1) {
-      res.send({
-        message: "密码更新成功。"
-      });
-    } else {
-      res.send({
-        message: "无法更新密码。"
-      });
-    }
-  } catch (err) {
-    res.status(500).send({
-      message: err.message || "更新密码时出现错误。"
+    await user.update({
+      password: bcrypt.hashSync(req.body.newPassword, 8)
     });
+
+    res.status(200).send({ message: "密码更新成功！" });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// 获取所有用户
+const findAll = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] }
+    });
+    res.status(200).send(users);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// 获取单个用户
+const findOne = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+    res.status(200).send(user);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// 更新用户
+const update = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+
+    await user.update(req.body);
+    res.status(200).send({ message: "用户更新成功！" });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
+// 删除用户
+const remove = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+
+    await user.destroy();
+    res.status(200).send({ message: "用户删除成功！" });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
   }
 };
 
@@ -175,5 +202,9 @@ export default {
   login,
   getCurrentUser,
   updateUser,
-  updatePassword
+  updatePassword,
+  findAll,
+  findOne,
+  update,
+  remove
 };

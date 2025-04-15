@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000/api/mock';
 
 // 商品相关接口
 const getAllProducts = async (params?: any) => {
@@ -77,7 +77,7 @@ const deleteCartItem = async (itemId: number) => {
 // 用户相关接口
 const getUserProfile = async () => {
   try {
-    const response = await axios.get(`${API_URL}/user/profile`);
+    const response = await axios.get(`${API_URL}/user`);
     return response.data;
   } catch (error) {
     console.error('获取用户信息失败:', error);
@@ -87,7 +87,7 @@ const getUserProfile = async () => {
 
 const getUserOrders = async () => {
   try {
-    const response = await axios.get(`${API_URL}/user/orders`);
+    const response = await axios.get(`${API_URL}/orders`);
     return response.data;
   } catch (error) {
     console.error('获取订单数据失败:', error);
@@ -97,7 +97,7 @@ const getUserOrders = async () => {
 
 const getUserAddresses = async () => {
   try {
-    const response = await axios.get(`${API_URL}/user/addresses`);
+    const response = await axios.get(`${API_URL}/addresses`);
     return response.data;
   } catch (error) {
     console.error('获取地址数据失败:', error);
@@ -130,7 +130,7 @@ const getNewArrivalsData = async () => {
 // 轮播图相关接口
 const getCarouselData = async () => {
   try {
-    const response = await axios.get(`${API_URL}/mock/carousel`);
+    const response = await axios.get(`${API_URL}/carousel`);
     return response.data;
   } catch (error) {
     console.error('获取轮播图数据失败:', error);
@@ -141,7 +141,7 @@ const getCarouselData = async () => {
 // 首页数据相关接口
 const getHomeData = async () => {
   try {
-    const response = await axios.get(`${API_URL}/mock/home`);
+    const response = await axios.get(`${API_URL}/home`);
     return response.data;
   } catch (error) {
     console.error('获取首页数据失败:', error);

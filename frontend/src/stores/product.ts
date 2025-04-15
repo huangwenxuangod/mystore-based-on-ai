@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
 import axios from 'axios'
+import { defineStore } from 'pinia'
 
 interface Product {
   id: number
@@ -38,7 +38,7 @@ interface ProductState {
   categories: Category[]
 }
 
-const API_URL = 'http://localhost:3000/api'
+const API_URL = 'http://localhost:5000/api'
 
 export const useProductStore = defineStore('product', {
   state: (): ProductState => ({

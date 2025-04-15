@@ -49,103 +49,85 @@
         <el-col :md="18" :sm="24">
           <div class="content-panel">
             <!-- 账户信息 -->
-            <div v-show="activeMenu === 'account'" class="account-info">
+            <div v-if="activeMenu === 'account'" class="account-info">
               <h2>账户信息</h2>
-              <el-divider />
-              
               <el-form :model="userInfo" label-width="100px">
                 <el-form-item label="用户名">
-                  <el-input v-model="userInfo.username" disabled />
+                  <el-input v-model="userInfo.username" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="邮箱">
+                  <el-input v-model="userInfo.email" disabled></el-input>
                 </el-form-item>
                 <el-form-item label="真实姓名">
-                  <el-input v-model="userInfo.realName" placeholder="请输入真实姓名" />
+                  <el-input v-model="userInfo.realName"></el-input>
+                </el-form-item>
+                <el-form-item label="手机号码">
+                  <el-input v-model="userInfo.phone"></el-input>
                 </el-form-item>
                 <el-form-item label="性别">
                   <el-radio-group v-model="userInfo.gender">
-                    <el-radio label="male">男</el-radio>
-                    <el-radio label="female">女</el-radio>
-                    <el-radio label="other">其他</el-radio>
+                    <el-radio label="男">男</el-radio>
+                    <el-radio label="女">女</el-radio>
                   </el-radio-group>
                 </el-form-item>
                 <el-form-item label="生日">
-                  <el-date-picker 
-                    v-model="userInfo.birthday" 
-                    type="date" 
-                    placeholder="选择生日"
-                    value-format="YYYY-MM-DD"
-                  />
-                </el-form-item>
-                <el-form-item label="手机号码">
-                  <el-input v-model="userInfo.phone" placeholder="请输入手机号码" />
-                </el-form-item>
-                <el-form-item label="邮箱">
-                  <el-input v-model="userInfo.email" disabled />
+                  <el-date-picker
+                    v-model="userInfo.birthday"
+                    type="date"
+                    placeholder="选择日期"
+                  ></el-date-picker>
                 </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" @click="saveUserInfo">保存</el-button>
+                  <el-button type="primary" @click="updateUserInfo">保存修改</el-button>
                 </el-form-item>
               </el-form>
             </div>
             
-            <!-- 订单列表 -->
-            <div v-show="activeMenu === 'orders'" class="orders-list">
+            <!-- 我的订单 -->
+            <div v-if="activeMenu === 'orders'" class="orders-list">
               <h2>我的订单</h2>
-              <el-divider />
-              
-              <div v-for="order in orders" :key="order.id" class="order-item">
-                <div class="order-header">
-                  <div>
-                    <span>订单号: {{ order.id }}</span>
-                    <span style="margin-left: 20px">下单时间: {{ order.date }}</span>
-                  </div>
-                  <div class="order-status">{{ order.status }}</div>
-                </div>
-                <div class="order-products">
-                  <div v-for="(product, index) in order.products" :key="index" class="product-item">
-                    <div class="product-image">
-                      <el-image :src="product.image" fit="cover"></el-image>
-                    </div>
-                    <div class="product-info">
-                      <h4>{{ product.name }}</h4>
-                      <p>{{ product.price }} x {{ product.quantity }}</p>
-                    </div>
-                  </div>
-                </div>
-                <div class="order-footer">
-                  <div class="order-total">
-                    <span>订单金额: </span>
-                    <span class="price">¥{{ order.total }}</span>
-                  </div>
-                  <div>
-                    <el-button size="small" @click="viewOrderDetail(order.id)">查看详情</el-button>
-                  </div>
-                </div>
-              </div>
+              <el-tabs v-model="orderTab">
+                <el-tab-pane label="全部订单" name="all">
+                  <el-table :data="orders" style="width: 100%">
+                    <el-table-column prop="orderNo" label="订单号" width="180"></el-table-column>
+                    <el-table-column prop="createTime" label="下单时间" width="180"></el-table-column>
+                    <el-table-column prop="totalAmount" label="订单金额" width="120"></el-table-column>
+                    <el-table-column prop="status" label="订单状态" width="120"></el-table-column>
+                    <el-table-column label="操作">
+                      <template #default="scope">
+                        <el-button type="text" @click="viewOrderDetail(scope.row)">查看详情</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-tab-pane>
+                <el-tab-pane label="待付款" name="unpaid">
+                  <el-empty description="暂无待付款订单"></el-empty>
+                </el-tab-pane>
+                <el-tab-pane label="待发货" name="unshipped">
+                  <el-empty description="暂无待发货订单"></el-empty>
+                </el-tab-pane>
+                <el-tab-pane label="待收货" name="shipped">
+                  <el-empty description="暂无待收货订单"></el-empty>
+                </el-tab-pane>
+                <el-tab-pane label="已完成" name="completed">
+                  <el-empty description="暂无已完成订单"></el-empty>
+                </el-tab-pane>
+              </el-tabs>
             </div>
             
-            <!-- 收藏列表 -->
-            <div v-show="activeMenu === 'favorites'" class="favorites-list">
+            <!-- 我的收藏 -->
+            <div v-if="activeMenu === 'favorites'" class="favorites-list">
               <h2>我的收藏</h2>
-              <el-divider />
-              
               <el-row :gutter="20">
-                <el-col :xs="24" :sm="12" :md="8" v-for="item in favorites" :key="item.id">
+                <el-col :span="6" v-for="item in favorites" :key="item.id">
                   <div class="favorite-item">
-                    <div class="favorite-image">
-                      <el-image :src="item.image" fit="cover"></el-image>
-                    </div>
-                    <div class="favorite-info">
-                      <h4>{{ item.name }}</h4>
+                    <el-image :src="item.image" fit="cover"></el-image>
+                    <div class="item-info">
+                      <h3>{{ item.name }}</h3>
                       <p class="price">{{ item.price }}</p>
-                      <div class="favorite-actions">
-                        <el-button size="small" type="primary">加入购物车</el-button>
-                        <el-button 
-                          size="small" 
-                          type="danger" 
-                          icon="Delete" 
-                          circle
-                          @click="removeFromFavorites(item.id)"
-                        ></el-button>
+                      <div class="actions">
+                        <el-button type="primary" size="small" @click="addToCart(item)">加入购物车</el-button>
+                        <el-button type="danger" size="small" @click="removeFavorite(item)">取消收藏</el-button>
                       </div>
                     </div>
                   </div>
@@ -154,124 +136,43 @@
             </div>
             
             <!-- 收货地址 -->
-            <div v-show="activeMenu === 'address'" class="address-list">
+            <div v-if="activeMenu === 'address'" class="address-list">
               <h2>收货地址</h2>
-              <el-divider />
-              
-              <div class="address-actions">
-                <el-button type="primary" @click="addAddress">新增地址</el-button>
-              </div>
-              
-              <div v-for="address in addresses" :key="address.id" class="address-item">
-                <div class="address-content">
-                  <div class="default-tag" v-if="address.isDefault">默认</div>
-                  <h4>{{ address.name }} {{ address.phone }}</h4>
-                  <p>{{ address.province }} {{ address.city }} {{ address.district }}</p>
-                  <p>{{ address.detail }}</p>
-                </div>
-                <div class="address-actions">
-                  <el-button size="small" @click="editAddress(address)">编辑</el-button>
-                  <el-button 
-                    size="small" 
-                    @click="setDefaultAddress(address.id)" 
-                    :disabled="address.isDefault"
-                  >设为默认</el-button>
-                  <el-button 
-                    size="small" 
-                    type="danger" 
-                    @click="deleteAddress(address.id)"
-                    :disabled="address.isDefault"
-                  >删除</el-button>
-                </div>
-              </div>
-              
-              <!-- 地址编辑对话框 -->
-              <el-dialog
-                v-model="showAddressDialog"
-                :title="editingAddress ? '编辑地址' : '新增地址'"
-                width="500px"
-              >
-                <el-form :model="addressForm" label-width="100px">
-                  <el-form-item label="收货人">
-                    <el-input v-model="addressForm.name" placeholder="请输入收货人姓名"></el-input>
-                  </el-form-item>
-                  <el-form-item label="手机号码">
-                    <el-input v-model="addressForm.phone" placeholder="请输入手机号码"></el-input>
-                  </el-form-item>
-                  <el-form-item label="所在地区">
-                    <el-input v-model="addressForm.province" placeholder="省份" style="width: 30%; margin-right: 5px"></el-input>
-                    <el-input v-model="addressForm.city" placeholder="城市" style="width: 30%; margin-right: 5px"></el-input>
-                    <el-input v-model="addressForm.district" placeholder="区县" style="width: 30%"></el-input>
-                  </el-form-item>
-                  <el-form-item label="详细地址">
-                    <el-input v-model="addressForm.detail" type="textarea" rows="2"></el-input>
-                  </el-form-item>
-                  <el-form-item>
-                    <el-checkbox v-model="addressForm.isDefault">设为默认收货地址</el-checkbox>
-                  </el-form-item>
-                </el-form>
-                <template #footer>
-                  <div class="dialog-footer">
-                    <el-button @click="showAddressDialog = false">取消</el-button>
-                    <el-button type="primary" @click="saveAddress">确认</el-button>
+              <el-button type="primary" @click="showAddAddressDialog">添加新地址</el-button>
+              <el-row :gutter="20">
+                <el-col :span="12" v-for="address in addresses" :key="address.id">
+                  <div class="address-card">
+                    <div class="address-info">
+                      <p><strong>{{ address.name }}</strong> {{ address.phone }}</p>
+                      <p>{{ address.province }}{{ address.city }}{{ address.district }}{{ address.detail }}</p>
+                    </div>
+                    <div class="address-actions">
+                      <el-button type="text" @click="editAddress(address)">编辑</el-button>
+                      <el-button type="text" @click="deleteAddress(address)">删除</el-button>
+                      <el-button type="text" v-if="!address.isDefault" @click="setDefaultAddress(address)">设为默认</el-button>
+                    </div>
                   </div>
-                </template>
-              </el-dialog>
+                </el-col>
+              </el-row>
             </div>
             
             <!-- 账户安全 -->
-            <div v-show="activeMenu === 'security'" class="security-info">
+            <div v-if="activeMenu === 'security'" class="security-settings">
               <h2>账户安全</h2>
-              <el-divider />
-              
-              <div class="security-item">
-                <div class="security-content">
-                  <h4>登录密码</h4>
-                  <p>定期修改密码可以保护您的账户安全</p>
-                </div>
-                <el-button @click="showPasswordDialog = true">修改密码</el-button>
-              </div>
-              
-              <div class="security-item">
-                <div class="security-content">
-                  <h4>手机号码</h4>
-                  <p>已绑定：{{ userInfo.phone }}</p>
-                </div>
-                <el-button>修改</el-button>
-              </div>
-              
-              <div class="security-item">
-                <div class="security-content">
-                  <h4>邮箱验证</h4>
-                  <p>已绑定：{{ userInfo.email }}</p>
-                </div>
-                <el-button>修改</el-button>
-              </div>
-              
-              <!-- 修改密码对话框 -->
-              <el-dialog
-                v-model="showPasswordDialog"
-                title="修改密码"
-                width="500px"
-              >
-                <el-form :model="passwordForm" label-width="100px">
-                  <el-form-item label="当前密码">
-                    <el-input v-model="passwordForm.oldPassword" type="password"></el-input>
-                  </el-form-item>
-                  <el-form-item label="新密码">
-                    <el-input v-model="passwordForm.newPassword" type="password"></el-input>
-                  </el-form-item>
-                  <el-form-item label="确认新密码">
-                    <el-input v-model="passwordForm.confirmPassword" type="password"></el-input>
-                  </el-form-item>
-                </el-form>
-                <template #footer>
-                  <div class="dialog-footer">
-                    <el-button @click="showPasswordDialog = false">取消</el-button>
-                    <el-button type="primary" @click="changePassword">确认修改</el-button>
-                  </div>
-                </template>
-              </el-dialog>
+              <el-form :model="securityForm" label-width="120px">
+                <el-form-item label="当前密码">
+                  <el-input v-model="securityForm.currentPassword" type="password"></el-input>
+                </el-form-item>
+                <el-form-item label="新密码">
+                  <el-input v-model="securityForm.newPassword" type="password"></el-input>
+                </el-form-item>
+                <el-form-item label="确认新密码">
+                  <el-input v-model="securityForm.confirmPassword" type="password"></el-input>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="updatePassword">修改密码</el-button>
+                </el-form-item>
+              </el-form>
             </div>
           </div>
         </el-col>
@@ -281,139 +182,99 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { 
-  User, UserFilled, List, Star, 
-  Location, Lock
+import { useMockStore } from '@/stores/mock'
+import {
+    Location, Lock,
+    Star,
+    User, UserFilled
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import mockService from '@/services/mockService'
+import { onMounted, ref } from 'vue'
 
-// 加载状态
+const mockStore = useMockStore()
 const loading = ref(true)
-
-// 当前激活的菜单
 const activeMenu = ref('account')
-
-// 用户信息
-const userInfo = reactive({
-  username: '',
-  email: '',
-  phone: '',
-  realName: '',
-  gender: '',
-  birthday: '',
-  avatar: ''
+const orderTab = ref('all')
+const userInfo = ref({})
+const orders = ref([])
+const favorites = ref([])
+const addresses = ref([])
+const securityForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
 })
 
-// 订单列表
-const orders = ref([])
+const handleMenuSelect = (index: string) => {
+  activeMenu.value = index
+}
 
-// 收藏商品
-const favorites = ref([])
-
-// 收货地址
-const addresses = ref([])
-
-// 获取用户数据
 const fetchUserData = async () => {
   try {
     loading.value = true
-    
-    // 获取用户信息
-    const userData = await mockService.getUserData()
-    Object.assign(userInfo, userData)
-    
-    // 获取订单数据
-    const ordersData = await mockService.getOrdersData()
-    orders.value = ordersData
-    
-    // 获取收藏数据
-    const favoritesData = await mockService.getFavoritesData()
-    favorites.value = favoritesData
-    
-    // 获取地址数据
-    const addressesData = await mockService.getAddressesData()
-    addresses.value = addressesData
+    const data = await mockStore.getUserData()
+    userInfo.value = data
+    addresses.value = data.address || []
   } catch (error) {
-    console.error('获取用户数据失败', error)
-    ElMessage.error('获取用户数据失败')
+    console.error('获取用户数据失败:', error)
   } finally {
     loading.value = false
   }
 }
 
-// 地址表单
-const showAddressDialog = ref(false)
-const editingAddress = ref(null)
-const addressForm = reactive({
-  id: null,
-  name: '',
-  phone: '',
-  province: '',
-  city: '',
-  district: '',
-  detail: '',
-  isDefault: false
-})
-
-// 密码表单
-const showPasswordDialog = ref(false)
-const passwordForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-// 处理菜单选择
-const handleMenuSelect = (index: string) => {
-  activeMenu.value = index
+const updateUserInfo = async () => {
+  try {
+    loading.value = true
+    await mockStore.updateUserInfo(userInfo.value)
+    ElMessage.success('用户信息更新成功')
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    ElMessage.error('更新用户信息失败')
+  } finally {
+    loading.value = false
+  }
 }
 
-// 保存用户信息
-const saveUserInfo = () => {
-  ElMessage.success('个人信息保存成功')
+const updatePassword = async () => {
+  try {
+    loading.value = true
+    await mockStore.updatePassword(securityForm.value)
+    ElMessage.success('密码修改成功')
+    securityForm.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  } catch (error) {
+    console.error('修改密码失败:', error)
+    ElMessage.error('修改密码失败')
+  } finally {
+    loading.value = false
+  }
 }
 
-// 查看订单详情
-const viewOrderDetail = (orderId: string) => {
-  console.log('查看订单详情：', orderId)
+const viewOrderDetail = (order: any) => {
+  console.log('查看订单详情:', order)
 }
 
-// 从收藏夹移除商品
-const removeFromFavorites = (itemId: number) => {
-  favorites.value = favorites.value.filter(item => item.id !== itemId)
+const removeFavorite = (item: any) => {
+  favorites.value = favorites.value.filter(i => i.id !== item.id)
   ElMessage.success('已从收藏夹移除')
 }
 
-// 新增地址
-const addAddress = () => {
-  editingAddress.value = null
-  addressForm.id = null
-  addressForm.name = ''
-  addressForm.phone = ''
-  addressForm.province = ''
-  addressForm.city = ''
-  addressForm.district = ''
-  addressForm.detail = ''
-  addressForm.isDefault = false
-  showAddressDialog.value = true
+const showAddAddressDialog = () => {
+  // Implementation of showAddAddressDialog
 }
 
-// 编辑地址
 const editAddress = (address: any) => {
-  editingAddress.value = address
-  Object.assign(addressForm, address)
-  showAddressDialog.value = true
+  // Implementation of editAddress
 }
 
-// 删除地址
 const deleteAddress = (addressId: number) => {
   addresses.value = addresses.value.filter(addr => addr.id !== addressId)
   ElMessage.success('地址删除成功')
 }
 
-// 设为默认地址
 const setDefaultAddress = (addressId: number) => {
   addresses.value.forEach(addr => {
     addr.isDefault = addr.id === addressId
@@ -421,75 +282,6 @@ const setDefaultAddress = (addressId: number) => {
   ElMessage.success('已设为默认地址')
 }
 
-// 保存地址
-const saveAddress = () => {
-  if (editingAddress.value) {
-    // 更新现有地址
-    const index = addresses.value.findIndex(addr => addr.id === addressForm.id)
-    if (index !== -1) {
-      addresses.value[index] = { ...addressForm }
-    }
-    
-    // 如果设为默认，其他地址不再为默认
-    if (addressForm.isDefault) {
-      addresses.value.forEach((addr, idx) => {
-        if (idx !== index) {
-          addr.isDefault = false
-        }
-      })
-    }
-    
-    ElMessage.success('地址修改成功')
-  } else {
-    // 添加新地址
-    const newAddress = {
-      ...addressForm,
-      id: addresses.value.length > 0 ? Math.max(...addresses.value.map(addr => addr.id)) + 1 : 1
-    }
-    
-    addresses.value.push(newAddress)
-    
-    // 如果设为默认，其他地址不再为默认
-    if (newAddress.isDefault) {
-      addresses.value.forEach(addr => {
-        if (addr.id !== newAddress.id) {
-          addr.isDefault = false
-        }
-      })
-    }
-    
-    ElMessage.success('新地址添加成功')
-  }
-  
-  showAddressDialog.value = false
-  // 重置表单
-  Object.keys(addressForm).forEach(key => {
-    if (key !== 'id') {
-      addressForm[key] = key === 'isDefault' ? false : ''
-    } else {
-      addressForm[key] = null
-    }
-  })
-  editingAddress.value = null
-}
-
-// 修改密码
-const changePassword = () => {
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    ElMessage.error('两次输入的新密码不一致')
-    return
-  }
-  
-  ElMessage.success('密码修改成功，请重新登录')
-  showPasswordDialog.value = false
-  
-  // 重置表单
-  passwordForm.oldPassword = ''
-  passwordForm.newPassword = ''
-  passwordForm.confirmPassword = ''
-}
-
-// 页面加载时获取数据
 onMounted(() => {
   fetchUserData()
 })

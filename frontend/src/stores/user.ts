@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia'
 import axios from 'axios'
+import { defineStore } from 'pinia'
 
 interface User {
   id: number
@@ -21,7 +21,7 @@ interface UserState {
   isAuthenticated: boolean
 }
 
-const API_URL = 'http://localhost:3000/api'
+const API_URL = 'http://localhost:5000/api'
 
 export const useUserStore = defineStore('user', {
   state: (): UserState => ({
