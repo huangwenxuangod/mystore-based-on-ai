@@ -190,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import mockService from '@/services/mockService';
+import apiService from '@/services/apiService';
 import { ElMessage } from 'element-plus';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -227,6 +227,7 @@ const sortBy = ref('default');
 // 分页
 const currentPage = ref(1);
 const pageSize = ref(12);
+const totalProductsCount = ref(0);
 
 // 获取所有商品数据
 const fetchProducts = async () => {
@@ -252,12 +253,29 @@ const fetchProducts = async () => {
       params.rating = selectedRatings.value.join(',');
     }
     
+    // 添加分页参数
+    params.page = currentPage.value;
+    params.limit = pageSize.value;
+    
     // 通过API获取商品数据
-    const data = await mockService.getAllProducts(params);
-    allProducts.value = data;
+    const data = await apiService.getAllProducts(params);
+    
+    // 正确处理分页数据
+    if (data && data.products) {
+      allProducts.value = data.products; // 存储商品列表
+      // 如果后端返回了总数，使用后端的总数
+      if (data.total !== undefined) {
+        totalProductsCount.value = data.total;
+      }
+    } else {
+      // 兼容处理，如果直接返回数组
+      allProducts.value = Array.isArray(data) ? data : [];
+      totalProductsCount.value = allProducts.value.length;
+    }
   } catch (error) {
     console.error('获取商品数据失败', error);
     ElMessage.error('获取商品数据失败');
+    allProducts.value = [];
   } finally {
     loading.value = false;
   }
@@ -366,7 +384,7 @@ const displayProducts = computed(() => {
 });
 
 // 商品总数和总页数
-const totalProducts = computed(() => filteredProducts.value.length);
+const totalProducts = computed(() => totalProductsCount.value);
 const totalPages = computed(() => Math.ceil(totalProducts.value / pageSize.value));
 
 // 处理筛选条件变化

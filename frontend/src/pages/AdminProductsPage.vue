@@ -286,6 +286,7 @@
 </template>
 
 <script setup lang="ts">
+import apiService from '@/services/apiService';
 import { ref, computed, onMounted, reactive, watch } from 'vue';
 import { useProductStore } from '../stores/product';
 import { useUserStore } from '../stores/user';

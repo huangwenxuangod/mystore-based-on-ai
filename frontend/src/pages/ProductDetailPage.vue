@@ -113,11 +113,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import apiService from '@/services/apiService';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ShoppingCart } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import mockService from '@/services/mockService';
 
 // 路由参数
 const route = useRoute();
@@ -147,7 +147,7 @@ const fetchProduct = async (id: string | string[]) => {
     loading.value = true;
     
     // 通过API获取商品数据
-    const data = await mockService.getProductDetail(id);
+    const data = await apiService.getProductDetail(id);
     product.value = data;
     
   } catch (error) {

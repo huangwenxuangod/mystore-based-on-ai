@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import mockService from '@/services/mockService';
+import apiService from '@/services/apiService';
 import { ElMessage } from 'element-plus';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -165,7 +165,7 @@ const fetchNewArrivalsData = async () => {
     loading.value = true;
     
     // 通过API获取新品上市数据
-    const data = await mockService.getNewArrivalsData();
+    const data = await apiService.getNewArrivalsData();
     
     allNewProducts.value = data.products || [];
     featuredProducts.value = data.featuredProducts || [];

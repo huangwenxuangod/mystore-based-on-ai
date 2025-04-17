@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import HomePage from '../pages/HomePage.vue'
+import { useUserStore } from '../stores/user'
 
 // 定义路由
 const routes: Array<RouteRecordRaw> = [
@@ -54,6 +55,36 @@ const routes: Array<RouteRecordRaw> = [
       title: '购物车'
     }
   },
+  // 添加结账页面路由
+  {
+    path: '/checkout',
+    name: 'Checkout',
+    component: () => import('../pages/CheckoutPage.vue'),
+    meta: {
+      title: '订单确认',
+      requiresAuth: true
+    }
+  },
+  // 添加支付页面路由
+  {
+    path: '/payment/:orderId',
+    name: 'Payment',
+    component: () => import('../pages/PaymentPage.vue'),
+    meta: {
+      title: '订单支付',
+      requiresAuth: true
+    }
+  },
+  // 添加支付结果页面路由
+  {
+    path: '/payment-result/:orderId',
+    name: 'PaymentResult',
+    component: () => import('../pages/PaymentResultPage.vue'),
+    meta: {
+      title: '支付结果',
+      requiresAuth: true
+    }
+  },
   // 添加个人中心页面路由
   {
     path: '/user',
@@ -81,15 +112,45 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - 我的商城`
   }
-  
-  // 这里可以添加身份验证、权限控制等逻辑
-  
-  next()
+
+  // 添加路由认证检查
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    // 使用userStore而不是直接从localStorage获取
+    const userStore = useUserStore()
+    
+    if (!userStore.isAuthenticated) {
+      // 如果没有登录，重定向到登录页
+      next({
+        path: '/user',
+        query: { redirect: to.fullPath }
+      })
+    } else {
+      // 验证token有效性
+      try {
+        const valid = await userStore.validateToken()
+        if (valid) {
+          next()
+        } else {
+          next({
+            path: '/user',
+            query: { redirect: to.fullPath }
+          })
+        }
+      } catch (error) {
+        next({
+          path: '/user',
+          query: { redirect: to.fullPath }
+        })
+      }
+    }
+  } else {
+    next()
+  }
 })
 
 export default router

@@ -132,11 +132,11 @@
 </template>
 
 <script setup lang="ts">
+import apiService from '@/services/apiService';
 import { ref, computed, reactive, onMounted } from 'vue'
 import { Delete, Star } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import mockService from '@/services/mockService'
 
 const router = useRouter()
 const loading = ref(true)
@@ -150,12 +150,75 @@ const recommendedProducts = ref([])
 const fetchCartData = async () => {
   try {
     loading.value = true;
-    const data = await mockService.getCartItems();
-    cartItems.value = data.items;
-    updateSelectedTotal();
+    
+    // 检查用户是否已登录，通过验证localStorage中是否有token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // 如果没有token，提示用户登录
+      ElMessageBox.confirm(
+        '您需要登录后才能查看购物车',
+        '提示',
+        {
+          confirmButtonText: '去登录',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+        .then(() => {
+          // 跳转到登录页，并在登录后返回购物车页面
+          router.push({
+            path: '/user',
+            query: { redirect: '/cart' }
+          });
+        })
+        .catch(() => {
+          // 用户取消，显示空购物车
+          cartItems.value = [];
+        });
+      return;
+    }
+    
+    const data = await apiService.getCartItems();
+    if (data && data.items) {
+      cartItems.value = data.items;
+      // 默认选中所有商品
+      cartItems.value.forEach(item => {
+        item.selected = true;
+      });
+    } else {
+      console.error('获取到的购物车数据格式不正确', data);
+      ElMessage.error('购物车数据格式不正确');
+    }
   } catch (error) {
     console.error('获取购物车数据失败', error);
-    ElMessage.error('获取购物车数据失败');
+    
+    // 检查是否是权限错误(403)
+    if (error.response && error.response.status === 403) {
+      ElMessageBox.confirm(
+        '您可能需要重新登录',
+        '访问权限不足',
+        {
+          confirmButtonText: '去登录',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+        .then(() => {
+          // 清除可能过期的token
+          localStorage.removeItem('token');
+          // 跳转到登录页，并在登录后返回购物车页面
+          router.push({
+            path: '/user',
+            query: { redirect: '/cart' }
+          });
+        })
+        .catch(() => {
+          // 用户取消，显示空购物车
+          cartItems.value = [];
+        });
+    } else {
+      ElMessage.error('获取购物车数据失败');
+    }
   } finally {
     loading.value = false;
   }

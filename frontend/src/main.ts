@@ -6,11 +6,36 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router' // 引入路由
+import { useUserStore } from './stores/user' // 引入用户状态管理
 
-const pinia = createPinia();
+// 导入 mock 数据（开发环境使用）
+import './mock'
+
 const app = createApp(App);
+const pinia = createPinia();
 
+// 先挂载 Pinia
 app.use(pinia);
-app.use(ElementPlus);
-app.use(router); // 使用路由
-app.mount('#app');
+
+const initAuth = async () => {
+  try {
+    const userStore = useUserStore();
+    
+    // 使用fetchCurrentUser替代autoLogin
+    if (userStore.token) {
+      await userStore.fetchCurrentUser(); // 如果有token，尝试获取当前用户信息
+    }
+    
+    app.use(ElementPlus); // 挂载 Element Plus
+    app.use(router); // 挂载路由
+    app.mount('#app'); // 挂载应用
+  } catch (error) {
+    app.use(ElementPlus); // 挂载 Element Plus
+    app.use(router); // 挂载路由
+    app.mount('#app'); // 挂载应用
+    console.error('自动登录失败:', error);
+  }
+}
+
+// 调用 initAuth 函数启动应用
+initAuth();

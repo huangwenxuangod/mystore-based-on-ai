@@ -46,15 +46,17 @@ db.sequelize.sync({ force: false })
 
 // 导入路由
 import categoryRoutes from "./routes/category.routes.js";
-import mockRoutes from "./routes/mock.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
+import orderRoutes from "./routes/order.routes.js";
 
 // 应用路由
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/mock", mockRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
 // API 文档路由
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));

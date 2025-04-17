@@ -1,13 +1,20 @@
 <template>
-    <!-- 轮播图部分 -->
-  <div class="carousel-container" ref="carouselRef" v-loading="loading">
-    <el-carousel :interval="5000" type="card" height="400px" ref="carousel">
-      <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
-        <div class="carousel-content" :style="{backgroundImage: `url(${item.imageUrl})`}">
-          <div class="carousel-text">
+  <div class="carousel-container">
+    <el-carousel :interval="4000" type="card" height="400px">
+      <el-carousel-item v-for="item in carouselItems" :key="item.id">
+        <div class="carousel-item">
+          <el-image :src="item.image" fit="cover" class="carousel-image" :lazy="true">
+            <template #error>
+              <div class="image-error">
+                <el-icon><Picture /></el-icon>
+                <p>加载图片失败</p>
+              </div>
+            </template>
+          </el-image>
+          <div class="carousel-content">
             <h2>{{ item.title }}</h2>
             <p>{{ item.description }}</p>
-            <el-button type="primary" size="large">{{ item.buttonText }}</el-button>
+            <el-button type="primary" v-if="item.link">了解更多</el-button>
           </div>
         </div>
       </el-carousel-item>
@@ -15,138 +22,130 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-// 导入防抖函数
-import { debounce } from '../utils/debounce';
-import mockService from '@/services/mockService';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import apiService from '@/services/apiService';
+import type { CarouselItem } from '@/types';
+import { Picture } from '@element-plus/icons-vue';
 
-// 加载状态
-const loading = ref(true);
-
-// 轮播图数据
-const carouselItems = ref([]);
-
-// 轮播图引用
-const carouselRef = ref(null);
-const carousel = ref(null);
-
-// 处理滚轮事件
-const handleWheel = debounce((e) => {
-  if (!carousel.value) return;
-  
-  if (e.deltaY > 0) {
-    // 向下滚动，显示下一张
-    carousel.value.next();
-  } else {
-    // 向上滚动，显示上一张
-    carousel.value.prev();
+const carouselItems = ref<CarouselItem[]>([
+  // 默认轮播图数据，避免空数据导致的显示问题
+  {
+    id: 1,
+    image: 'https://picsum.photos/id/11/1200/400',
+    title: '夏季新品',
+    description: '清凉一夏，折扣享不停'
+  },
+  {
+    id: 2,
+    image: 'https://picsum.photos/id/12/1200/400',
+    title: '智能家居',
+    description: '科技改变生活'
+  },
+  {
+    id: 3,
+    image: 'https://picsum.photos/id/13/1200/400',
+    title: '时尚服饰',
+    description: '展现自我风采'
   }
-}, 300); // 300ms防抖延迟
+]);
 
-// 获取轮播图数据
 const fetchCarouselData = async () => {
   try {
-    loading.value = true;
-    const data = await mockService.getCarouselData();
-    carouselItems.value = data;
+    const data = await apiService.getCarouselData();
+    // 只有在成功获取到轮播图数据且数组不为空时才更新
+    if (data && Array.isArray(data) && data.length > 0) {
+      carouselItems.value = data;
+    }
   } catch (error) {
     console.error('获取轮播图数据失败', error);
-    // 设置默认数据
-    carouselItems.value = [
-      {
-        title: "数据加载失败",
-        description: "请稍后重试",
-        buttonText: "刷新页面",
-        imageUrl: "https://picsum.photos/id/237/1200/400"
-      }
-    ];
-  } finally {
-    loading.value = false;
+    // 发生错误时保持默认数据
   }
 };
 
 onMounted(() => {
-  // 获取轮播图数据
   fetchCarouselData();
-  
-  // 添加滚轮事件监听
-  if (carouselRef.value) {
-    carouselRef.value.addEventListener('wheel', handleWheel, { passive: true });
-  }
-});
-
-onBeforeUnmount(() => {
-  // 组件卸载前移除事件监听
-  if (carouselRef.value) {
-    carouselRef.value.removeEventListener('wheel', handleWheel);
-  }
 });
 </script>
 
 <style lang="scss" scoped>
 .carousel-container {
   margin-bottom: 40px;
-  
-  .el-carousel__item {
-    border-radius: 8px;
-    overflow: hidden;
-  }
+}
+
+.carousel-item {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .carousel-content {
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  padding: 0 50px;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%);
-  }
-}
-
-.carousel-text {
-  position: relative;
-  z-index: 2;
-  max-width: 500px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
   color: #fff;
   
   h2 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    font-weight: 600;
+    margin: 0 0 10px;
+    font-size: 24px;
+    font-weight: bold;
   }
   
   p {
-    font-size: 1.2rem;
-    margin-bottom: 20px;
+    margin: 0 0 20px;
+    font-size: 16px;
+    opacity: 0.9;
   }
 }
 
-// 响应式调整
-@media (max-width: 768px) {
-  .carousel-content {
-    padding: 0 20px;
+.image-error {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #909399;
+  background-color: #f5f7fa;
+  
+  .el-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
   }
   
-  .carousel-text {
-    h2 {
-      font-size: 1.8rem;
-    }
-    
-    p {
-      font-size: 1rem;
-    }
+  p {
+    margin: 0;
   }
+}
+
+:deep(.el-carousel__item) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.el-carousel__arrow) {
+  background-color: rgba(255, 255, 255, 0.2);
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+:deep(.el-carousel__indicators) {
+  bottom: 20px;
+}
+
+:deep(.el-carousel__button) {
+  width: 30px;
+  height: 3px;
+  border-radius: 1.5px;
 }
 </style>

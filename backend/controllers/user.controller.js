@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import db from "../models/index.js";
 
 const User = db.users;
+const Product = db.products;
+const Address = db.addresses;
 
 // 注册
 const register = async (req, res) => {
@@ -197,6 +199,224 @@ const remove = async (req, res) => {
   }
 };
 
+// 获取用户收藏列表
+const getFavorites = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId, {
+      include: [{
+        model: Product,
+        as: 'favorites',
+        through: { attributes: [] } // 不包含中间表的字段
+      }]
+    });
+
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+
+    res.status(200).send(user.favorites || []);
+  } catch (err) {
+    res.status(500).send({ message: err.message || "获取收藏列表时出错。" });
+  }
+};
+
+// 添加商品到收藏
+const addFavorite = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+    
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).send({ message: "商品不存在。" });
+    }
+    
+    // 使用关联添加收藏
+    await user.addFavorite(product);
+    
+    res.status(200).send({ message: "已将商品添加到收藏。" });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "添加收藏时出错。" });
+  }
+};
+
+// 从收藏中移除商品
+const removeFavorite = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+    
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).send({ message: "商品不存在。" });
+    }
+    
+    // 使用关联移除收藏
+    await user.removeFavorite(product);
+    
+    res.status(200).send({ message: "已将商品从收藏中移除。" });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "移除收藏时出错。" });
+  }
+};
+
+// 获取用户个人资料
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId, {
+      attributes: { exclude: ['password'] }
+    });
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+    res.status(200).send(user);
+  } catch (err) {
+    res.status(500).send({ message: err.message || "获取用户资料时出错。" });
+  }
+};
+
+// 更新用户个人资料
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).send({ message: "用户不存在。" });
+    }
+
+    await user.update({
+      realName: req.body.realName,
+      phone: req.body.phone,
+      gender: req.body.gender,
+      birthday: req.body.birthday,
+      avatar: req.body.avatar
+    });
+
+    res.status(200).send({
+      message: "用户资料更新成功！",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        realName: user.realName,
+        phone: user.phone,
+        gender: user.gender,
+        birthday: user.birthday,
+        avatar: user.avatar
+      }
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "更新用户资料时出错。" });
+  }
+};
+
+// 获取用户地址列表
+const getAddresses = async (req, res) => {
+  try {
+    const addresses = await Address.findAll({
+      where: { userId: req.userId }
+    });
+    res.status(200).send(addresses);
+  } catch (err) {
+    res.status(500).send({ message: err.message || "获取地址列表时出错。" });
+  }
+};
+
+// 添加新地址
+const addAddress = async (req, res) => {
+  try {
+    const address = {
+      userId: req.userId,
+      receiverName: req.body.receiverName,
+      phone: req.body.phone,
+      province: req.body.province,
+      city: req.body.city,
+      district: req.body.district,
+      detailAddress: req.body.detailAddress,
+      isDefault: req.body.isDefault || false
+    };
+
+    // 如果设为默认地址，需要将其他地址的默认状态取消
+    if (address.isDefault) {
+      await Address.update(
+        { isDefault: false },
+        { where: { userId: req.userId } }
+      );
+    }
+
+    const newAddress = await Address.create(address);
+    res.status(201).send(newAddress);
+  } catch (err) {
+    res.status(500).send({ message: err.message || "添加地址时出错。" });
+  }
+};
+
+// 更新地址
+const updateAddress = async (req, res) => {
+  try {
+    const address = await Address.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.userId
+      }
+    });
+
+    if (!address) {
+      return res.status(404).send({ message: "地址不存在。" });
+    }
+
+    // 如果设为默认地址，需要将其他地址的默认状态取消
+    if (req.body.isDefault) {
+      await Address.update(
+        { isDefault: false },
+        { where: { userId: req.userId } }
+      );
+    }
+
+    await address.update({
+      receiverName: req.body.receiverName,
+      phone: req.body.phone,
+      province: req.body.province,
+      city: req.body.city,
+      district: req.body.district,
+      detailAddress: req.body.detailAddress,
+      isDefault: req.body.isDefault
+    });
+
+    res.status(200).send(address);
+  } catch (err) {
+    res.status(500).send({ message: err.message || "更新地址时出错。" });
+  }
+};
+
+// 删除地址
+const deleteAddress = async (req, res) => {
+  try {
+    const address = await Address.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.userId
+      }
+    });
+
+    if (!address) {
+      return res.status(404).send({ message: "地址不存在。" });
+    }
+
+    await address.destroy();
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).send({ message: err.message || "删除地址时出错。" });
+  }
+};
+
 export default {
   register,
   login,
@@ -206,5 +426,14 @@ export default {
   findAll,
   findOne,
   update,
-  remove
+  remove,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  getProfile,
+  updateProfile,
+  getAddresses,
+  addAddress,
+  updateAddress,
+  deleteAddress
 };

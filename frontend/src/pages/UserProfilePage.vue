@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { useMockStore } from '@/stores/mock'
+import apiService from '@/services/apiService';
 import {
     Location, Lock,
     Star,
@@ -191,7 +191,6 @@ import {
 import { ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
 
-const mockStore = useMockStore()
 const loading = ref(true)
 const activeMenu = ref('account')
 const orderTab = ref('all')
@@ -212,7 +211,7 @@ const handleMenuSelect = (index: string) => {
 const fetchUserData = async () => {
   try {
     loading.value = true
-    const data = await mockStore.getUserData()
+    const data = await apiService.getUserData()
     userInfo.value = data
     addresses.value = data.address || []
   } catch (error) {
@@ -225,7 +224,7 @@ const fetchUserData = async () => {
 const updateUserInfo = async () => {
   try {
     loading.value = true
-    await mockStore.updateUserInfo(userInfo.value)
+    await apiService.updateUserInfo(userInfo.value)
     ElMessage.success('用户信息更新成功')
   } catch (error) {
     console.error('更新用户信息失败:', error)
@@ -238,7 +237,7 @@ const updateUserInfo = async () => {
 const updatePassword = async () => {
   try {
     loading.value = true
-    await mockStore.updatePassword(securityForm.value)
+    await apiService.updatePassword(securityForm.value)
     ElMessage.success('密码修改成功')
     securityForm.value = {
       currentPassword: '',
@@ -290,6 +289,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .user-profile-page {
   padding: 20px;
+  color: var(--el-text-color-primary);
 }
 
 .page-header {
@@ -299,6 +299,7 @@ onMounted(() => {
   h1 {
     font-size: 28px;
     margin-bottom: 10px;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -309,39 +310,45 @@ onMounted(() => {
 
 // 侧边栏样式
 .user-sidebar {
-  background: #fff;
+  background-color: var(--el-bg-color);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   padding: 20px 0;
   margin-bottom: 20px;
   
   .user-avatar {
     text-align: center;
     padding: 20px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--el-border-color-light);
     
     h3 {
       margin-top: 10px;
       margin-bottom: 0;
       font-size: 18px;
+      color: var(--el-text-color-primary);
     }
   }
   
   .user-menu {
     border-right: none;
+    background-color: transparent;
   }
 }
 
 // 内容面板
 .content-panel {
-  background: #fff;
+  background-color: var(--el-bg-color);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
   padding: 30px;
   
   h2 {
     margin-top: 0;
     font-size: 20px;
+    color: var(--el-text-color-primary);
+    border-bottom: 1px solid var(--el-border-color-light);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
   }
 }
 
@@ -349,44 +356,41 @@ onMounted(() => {
 .favorites-list {
   .favorite-item {
     display: flex;
-    background: #f9f9f9;
+    flex-direction: column;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 20px;
+    box-shadow: var(--el-box-shadow-lighter);
+    border: 1px solid var(--el-border-color-light);
     
-    .favorite-image {
-      width: 120px;
-      height: 120px;
-      flex-shrink: 0;
-      
-      .el-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
+    .el-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
     }
     
-    .favorite-info {
-      flex-grow: 1;
+    .item-info {
       padding: 15px;
       display: flex;
       flex-direction: column;
       
-      h4 {
+      h3 {
         margin: 0 0 10px;
         font-size: 16px;
+        color: var(--el-text-color-primary);
       }
       
       .price {
-        color: #ff6b6b;
+        color: var(--el-color-danger);
         font-weight: bold;
-        margin-bottom: auto;
+        margin-bottom: 10px;
       }
       
-      .favorite-actions {
+      .actions {
         display: flex;
         gap: 10px;
-        margin-top: 10px;
+        margin-top: auto;
       }
     }
   }
@@ -398,72 +402,55 @@ onMounted(() => {
     margin-bottom: 20px;
   }
   
-  .address-item {
-    border: 1px solid #eee;
+  .address-card {
+    background-color: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 15px;
-    display: flex;
-    justify-content: space-between;
     
-    .address-content {
-      position: relative;
-      padding-right: 20px;
-      
-      .default-tag {
-        position: absolute;
-        top: 0;
-        right: 0;
-        background: #ff6b6b;
-        color: #fff;
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-      
-      h4 {
-        margin: 0 0 10px;
-        font-size: 16px;
-      }
-      
+    .address-info {
       p {
-        margin: 0;
-        color: #666;
+        margin: 8px 0;
+        color: var(--el-text-color-regular);
+        
+        strong {
+          color: var(--el-text-color-primary);
+        }
       }
     }
     
     .address-actions {
       display: flex;
-      flex-direction: column;
       gap: 10px;
-      margin: 0;
+      margin-top: 10px;
+      border-top: 1px solid var(--el-border-color-lighter);
+      padding-top: 10px;
     }
   }
 }
 
 // 安全设置
-.security-info {
-  .security-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #eee;
+.security-settings {
+  .el-form {
+    max-width: 500px;
+  }
+}
+
+// 订单列表
+.orders-list {
+  .el-tabs__nav-wrap::after {
+    background-color: var(--el-border-color-light);
+  }
+  
+  .el-table {
+    --el-table-border-color: var(--el-border-color-lighter);
+    --el-table-header-bg-color: var(--el-fill-color-light);
+    --el-table-row-hover-bg-color: var(--el-fill-color);
     
-    &:last-child {
-      border-bottom: none;
-    }
-    
-    .security-content {
-      h4 {
-        margin: 0 0 8px;
-        font-size: 16px;
-      }
-      
-      p {
-        margin: 0;
-        color: #666;
-      }
+    th.el-table__cell {
+      background-color: var(--el-fill-color-light);
+      color: var(--el-text-color-primary);
     }
   }
 }
@@ -473,17 +460,22 @@ onMounted(() => {
     padding: 20px 15px;
   }
   
-  .order-item {
-    .order-footer {
+  .favorites-list {
+    .favorite-item {
       flex-direction: column;
-      gap: 10px;
+      
+      .favorite-image {
+        width: 100%;
+        height: auto;
+      }
     }
   }
   
-  .security-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+  .address-list {
+    .address-card {
+      margin-bottom: 20px;
+    }
   }
 }
+
 </style>

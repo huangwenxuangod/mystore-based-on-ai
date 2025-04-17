@@ -162,6 +162,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  products: {
+    type: Array,
+    default: () => []
+  },
   productType: {
     type: String,
     default: 'popular' // popular, new, promotion, all
@@ -185,6 +189,12 @@ const isAdmin = computed(() => userStore.isAdmin);
 
 // 根据不同类型获取对应的产品列表
 const productList = computed(() => {
+  // 如果直接传入了products，则使用传入的产品列表
+  if (props.products && props.products.length > 0) {
+    return props.products;
+  }
+  
+  // 否则根据productType获取产品列表
   switch (props.productType) {
     case 'new':
       return productStore.newArrivals;
@@ -198,8 +208,9 @@ const productList = computed(() => {
       }
       return [];
     case 'all':
-    default:
       return productStore.products;
+    default:
+      return [];
   }
 });
 

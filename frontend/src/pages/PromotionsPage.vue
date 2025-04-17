@@ -151,9 +151,9 @@
 </template>
 
 <script setup lang="ts">
+import apiService from '@/services/apiService';
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue';
 import { ElMessage } from 'element-plus';
-import mockService from '@/services/mockService';
 
 // 加载状态
 const loading = ref(true);
@@ -178,7 +178,7 @@ let countdownTimer: number | null = null;
 const fetchPromotionsData = async () => {
   try {
     loading.value = true;
-    const data = await mockService.getPromotionsData();
+    const data = await apiService.getPromotionsData();
     
     // 更新促销数据
     promotionsData.banners = data.banners || [];
@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
   .banner-info {
     max-width: 50%;
     padding: 30px;
-    background-color: rgba(255, 255, 255, 0.8);
+    opacity: 0.9;
     border-radius: 8px;
     margin-left: 50px;
     
