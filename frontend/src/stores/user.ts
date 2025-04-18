@@ -1,51 +1,51 @@
 import { defineStore } from 'pinia'
-import apiService from '../services/apiService'
+import apiService from '@/services/apiService'
 
-// 用户接口定义
+// 简化的用户接口定义
 interface User {
   id: number
-  username: string
   email: string
-  realName?: string
-  phone?: string
-  gender?: string
-  birthday?: string
-  avatar?: string
   isAdmin?: boolean
 }
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     user: null as User | null,
-    token: localStorage.getItem('token') || '', // 从localStorage获取token
-    isAuthenticated: !!localStorage.getItem('token'), // 根据是否有token判断是否已认证
+    token: localStorage.getItem('token') || '',
+    isAuthenticated: !!localStorage.getItem('token'),
+    isAdmin: false, // 默认不是管理员，根据实际用户信息设置
     loading: false,
     error: null as string | null
   }),
-
+  
   getters: {
-    // 获取用户名
-    username: (state) => {
-      return state.user?.username || '游客'
-    },
-
-    // 是否是管理员
-    isAdmin: (state) => {
-      return state.user?.isAdmin || false
+    // 获取用户邮箱
+    userEmail: (state) => state.user?.email || '未登录',
+    
+    // 验证token
+    validateToken: (state) => {
+      return async () => {
+        if (!state.token) return false;
+        try {
+          const user = await apiService.getCurrentUser();
+          if (user) {
+            state.user = user;
+            state.isAdmin = user.isAdmin || false; // 使用服务器返回的实际权限
+            return true;
+          }
+          return false;
+        } catch (error) {
+          return false;
+        }
+      }
     }
   },
-
+  
   actions: {
-    // 用户注册
+    // 简化的用户注册
     async register(credentials: {
-      username: string
-      email: string
+      email: string,
       password: string
-      confirmPassword?: string
-      realName?: string
-      phone?: string
-      gender?: string
-      birthday?: string
     }) {
       this.loading = true
       this.error = null
@@ -63,8 +63,8 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // 用户登录
-    async login(credentials: { username: string; password: string }) {
+    // 简化的用户登录
+    async login(credentials: { email: string; password: string }) {
       this.loading = true
       this.error = null
       
@@ -103,23 +103,6 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // 更新用户信息
-    async updateUserProfile(userData: Partial<User>) {
-      this.loading = true
-      this.error = null
-      
-      try {
-        const updatedUser = await apiService.updateUserProfile(userData)
-        this.setUser(updatedUser)
-        return updatedUser
-      } catch (error: any) {
-        this.error = error.response?.data?.message || '更新用户信息失败'
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },
-
     // 更改密码
     async changePassword(passwordData: {
       currentPassword: string
@@ -130,9 +113,10 @@ export const useUserStore = defineStore('user', {
       this.error = null
       
       try {
-        return await apiService.changePassword(passwordData)
+        const response = await apiService.changePassword(passwordData)
+        return response
       } catch (error: any) {
-        this.error = error.response?.data?.message || '密码更新失败'
+        this.error = error.response?.data?.message || '修改密码失败'
         throw error
       } finally {
         this.loading = false
@@ -142,6 +126,9 @@ export const useUserStore = defineStore('user', {
     // 设置当前用户
     setUser(user: User | null) {
       this.user = user
+      if (user) {
+        this.isAdmin = user.isAdmin || false // 根据用户实际权限设置管理员状态
+      }
     },
 
     // 设置令牌
@@ -156,6 +143,7 @@ export const useUserStore = defineStore('user', {
       this.user = null
       this.token = ''
       this.isAuthenticated = false
+      this.isAdmin = false // 登出后重置管理员状态
       localStorage.removeItem('token')
     }
   },

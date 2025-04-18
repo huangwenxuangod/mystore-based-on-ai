@@ -208,6 +208,51 @@ const findPopular = (req, res) => {
     });
 };
 
+// 获取推荐产品
+const getRecommendedProducts = async (req, res) => {
+  try {
+    // 这里可以根据用户历史、偏好等进行个性化推荐
+    // 现在简单实现为热门产品 + 随机推荐
+    
+    // 获取热门产品
+    const popularProducts = await Product.findAll({
+      order: [['salesCount', 'DESC']],
+      limit: 3
+    });
+    
+    // 获取一些随机产品以补充推荐
+    const randomProducts = await Product.findAll({
+      order: db.sequelize.random(), // 随机排序
+      limit: 3,
+      where: {
+        id: {
+          [Op.notIn]: popularProducts.map(product => product.id)
+        }
+      }
+    });
+    
+    // 合并结果
+    const recommendedProducts = [...popularProducts, ...randomProducts];
+    
+    res.status(200).send({
+      products: recommendedProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: `¥${product.price.toFixed(2)}`,
+        image: product.image,
+        rating: product.rating || 4.5,
+        salesCount: product.salesCount || 0
+      })),
+      success: true
+    });
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "获取推荐产品时出现错误。",
+      success: false
+    });
+  }
+};
+
 export default {
   create,
   findAll,
@@ -216,5 +261,6 @@ export default {
   remove,
   findNewArrivals,
   findPromotions,
-  findPopular
+  findPopular,
+  getRecommendedProducts
 };

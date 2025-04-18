@@ -8,9 +8,6 @@ import App from './App.vue'
 import router from './router' // 引入路由
 import { useUserStore } from './stores/user' // 引入用户状态管理
 
-// 导入 mock 数据（开发环境使用）
-import './mock'
-
 const app = createApp(App);
 const pinia = createPinia();
 

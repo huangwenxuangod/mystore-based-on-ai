@@ -36,9 +36,9 @@ app.get("/", (req, res) => {
 });
 
 // 数据库连接
-db.sequelize.sync({ force: false })
+db.sequelize.sync({ force: true }) // 使用 force:true 强制重建表结构
   .then(() => {
-    console.log("数据库已连接。");
+    console.log("数据库已连接并重新创建表结构。");
   })
   .catch(err => {
     console.log("数据库连接失败: " + err.message);
@@ -50,6 +50,8 @@ import productRoutes from "./routes/product.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import marketingRoutes from "./routes/marketing.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 
 // 应用路由
 app.use("/api/categories", categoryRoutes);
@@ -57,6 +59,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api", marketingRoutes); // 营销路由，路径前缀已在路由文件中包含
+app.use("/api/payments", paymentRoutes);
 
 // API 文档路由
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
@@ -73,3 +77,25 @@ app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}。`);
   console.log(`API 文档地址：http://localhost:${PORT}/api-docs`);
 });
+
+// 在数据库连接成功后，初始化一些基础数据
+db.sequelize.sync({ force: true })
+  .then(async () => {
+    console.log("数据库已连接并重新创建表结构。");
+    
+    // 初始化分类数据
+    try {
+      const categories = await db.categories.bulkCreate([
+        { name: "电子产品", description: "电脑、手机等电子设备" },
+        { name: "家居用品", description: "家具、装饰品等" },
+        { name: "服装服饰", description: "衣服、鞋帽等" },
+        { name: "食品饮料", description: "零食、饮料等" }
+      ]);
+      console.log("初始分类数据创建成功");
+    } catch (err) {
+      console.log("初始化分类数据失败:", err.message);
+    }
+  })
+  .catch(err => {
+    console.log("数据库连接失败: " + err.message);
+  });

@@ -85,13 +85,33 @@ const routes: Array<RouteRecordRaw> = [
       requiresAuth: true
     }
   },
+  // 添加登录/注册页面路由
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../pages/LoginPage.vue'),
+    meta: {
+      title: '登录/注册'
+    }
+  },
   // 添加个人中心页面路由
   {
     path: '/user',
     name: 'UserProfile',
     component: () => import('../pages/UserProfilePage.vue'),
     meta: {
-      title: '个人中心'
+      title: '个人中心',
+      requiresAuth: true
+    }
+  },
+  // 添加管理员产品管理页面路由
+  {
+    path: '/admin/products',
+    name: 'AdminProducts',
+    component: () => import('../pages/AdminProductsPage.vue'),
+    meta: {
+      title: '产品管理',
+      requiresAuth: true
     }
   },
   // 404页面
@@ -126,7 +146,7 @@ router.beforeEach(async (to, from, next) => {
     if (!userStore.isAuthenticated) {
       // 如果没有登录，重定向到登录页
       next({
-        path: '/user',
+        path: '/login',
         query: { redirect: to.fullPath }
       })
     } else {
@@ -137,13 +157,13 @@ router.beforeEach(async (to, from, next) => {
           next()
         } else {
           next({
-            path: '/user',
+            path: '/login',
             query: { redirect: to.fullPath }
           })
         }
       } catch (error) {
         next({
-          path: '/user',
+          path: '/login',
           query: { redirect: to.fullPath }
         })
       }

@@ -93,19 +93,38 @@
         </el-col>
       </el-row>
     </div>
+    
+    <!-- 产品管理快捷访问按钮 - 对所有登录用户显示 -->
+    <el-backtop 
+      v-if="userStore.isAuthenticated" 
+      class="admin-shortcut"
+      :bottom="150" 
+      :right="40" 
+      @click="goToAdminProducts"
+    >
+      <div class="admin-icon">
+        <el-tooltip content="产品管理" placement="left">
+          <el-icon style="font-size: 20px;"><Setting /></el-icon>
+        </el-tooltip>
+      </div>
+    </el-backtop>
   </div>
 </template>
 
 <script setup lang="ts">
 import carousel from '@/components/carousel.vue';
 import { useCartStore } from '@/stores/cart';
-import { Promotion, Service, ShoppingBag, TrendCharts } from '@element-plus/icons-vue';
+import { useUserStore } from '@/stores/user';
+import { useRouter } from 'vue-router';
+import { Promotion, Service, ShoppingBag, TrendCharts, Goods, Timer, StarFilled, House, Briefcase, Van, Setting } from '@element-plus/icons-vue';
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import apiService from '@/services/apiService';
 import type { Feature, Product, Brand } from '@/types';
 
 const cartStore = useCartStore();
+const userStore = useUserStore();
+const router = useRouter();
 
 // 加载中状态
 const loading = ref(true);
@@ -136,7 +155,13 @@ const getIconComponent = (iconName: string) => {
     'ShoppingBag': ShoppingBag,
     'TrendCharts': TrendCharts,
     'Service': Service,
-    'Promotion': Promotion
+    'Promotion': Promotion,
+    'Goods': Goods,
+    'Timer': Timer,
+    'StarFilled': StarFilled,
+    'House': House,
+    'Briefcase': Briefcase,
+    'Van': Van
   };
   
   return iconMap[iconName] || ShoppingBag;
@@ -152,6 +177,11 @@ const addToCart = async (product: Product) => {
   }
 };
 
+// 去产品管理页面
+const goToAdminProducts = () => {
+  router.push('/admin/products');
+};
+
 // 获取首页数据
 const fetchHomeData = async () => {
   try {
@@ -159,17 +189,38 @@ const fetchHomeData = async () => {
     const data = await apiService.getHomeData();
     
     // 确保对每个数据源进行正确处理，防止出现空值导致的错误
+    // 处理特色服务数据
     features.value = data.features || [];
-    hotProducts.value = Array.isArray(data.popularProducts) ? data.popularProducts : [];
-    newProducts.value = Array.isArray(data.newArrivals) ? data.newArrivals : [];
+    
+    // 处理热门商品数据 - 修正字段名匹配
+    if (Array.isArray(data.recommendProducts)) {
+      hotProducts.value = data.recommendProducts;
+    } else if (Array.isArray(data.products)) {
+      hotProducts.value = data.products;
+    } else {
+      hotProducts.value = [];
+      console.warn('未找到热门商品数据');
+    }
+    
+    // 处理新品上市数据
+    if (data.newArrivals && Array.isArray(data.newArrivals)) {
+      newProducts.value = data.newArrivals;
+    } else {
+      // 如果没有专门的新品数据，可以使用推荐商品作为备选
+      newProducts.value = hotProducts.value.slice(0, 4);
+    }
     
     // 获取推荐商品，单独处理以便捕获特定错误
     try {
       const recommendedData = await apiService.getRecommendedProducts();
-      if (Array.isArray(recommendedData) && recommendedData.length > 0) {
+      if (recommendedData && recommendedData.products && Array.isArray(recommendedData.products)) {
+        recommendedProducts.value = recommendedData.products;
+      } else if (Array.isArray(recommendedData)) {
         recommendedProducts.value = recommendedData;
       } else {
         console.warn('获取到的推荐商品数据为空或格式不正确');
+        // 使用热门商品作为备选
+        recommendedProducts.value = hotProducts.value.slice(0, 6);
       }
     } catch (recommendError) {
       console.error('获取推荐商品失败', recommendError);
@@ -198,17 +249,24 @@ const fetchHomeData = async () => {
         }
       ];
     }
+    
+    // 获取品牌数据
+    if (data.popularBrands && Array.isArray(data.popularBrands)) {
+      brands.value = data.popularBrands;
+    }
+    // 默认品牌数据在组件中已经定义
   } catch (error) {
     console.error('获取首页数据失败', error);
+    console.log('错误详情:', error.response || error.message || error);
     ElMessage.error('获取数据失败，请稍后重试');
     
     // 如果获取失败，使用一些默认数据以确保UI正常显示
     if (features.value.length === 0) {
       features.value = [
-        { icon: 'ShoppingBag', title: '品质保证', description: '精选优质商品' },
-        { icon: 'Promotion', title: '限时折扣', description: '会员专享优惠' },
-        { icon: 'Service', title: '极速配送', description: '24小时送达' },
-        { icon: 'TrendCharts', title: '无忧退换', description: '7天无理由退换' }
+        { icon: 'Goods', title: '品质保证', description: '精选优质商品' },
+        { icon: 'Timer', title: '限时折扣', description: '会员专享优惠' },
+        { icon: 'Van', title: '极速配送', description: '24小时送达' },
+        { icon: 'StarFilled', title: '无忧退换', description: '7天无理由退换' }
       ];
     }
   } finally {
@@ -395,6 +453,24 @@ onMounted(() => {
   .el-image {
     height: 60px;
     max-width: 90%;
+  }
+}
+
+.admin-shortcut {
+  background-color: #409EFF !important;
+  
+  .admin-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+  }
+  
+  &:hover {
+    background-color: #337ECC !important;
+    cursor: pointer;
   }
 }
 

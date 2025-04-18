@@ -237,6 +237,32 @@ router.get("/popular", products.findPopular);
 
 /**
  * @swagger
+ * /api/products/recommended:
+ *   get:
+ *     summary: 获取推荐产品
+ *     description: 获取基于用户偏好和热门度的推荐产品
+ *     tags: [产品查询]
+ *     responses:
+ *       200:
+ *         description: 成功获取推荐产品列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 success:
+ *                   type: boolean
+ *       500:
+ *         description: 服务器内部错误
+ */
+router.get("/recommended", products.getRecommendedProducts);
+
+/**
+ * @swagger
  * /api/products/{id}:
  *   get:
  *     summary: 获取单个产品详情

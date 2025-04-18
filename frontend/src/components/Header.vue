@@ -24,6 +24,8 @@
           <el-menu-item index="/products">全部商品</el-menu-item>
           <el-menu-item index="/promotions">优惠活动</el-menu-item>
           <el-menu-item index="/new">新品上市</el-menu-item>
+          <!-- 对所有登录用户显示产品管理菜单 -->
+          <el-menu-item v-if="userStore.isAuthenticated" index="/admin/products">产品管理</el-menu-item>
         </el-menu>
       </el-col>
       
@@ -49,6 +51,10 @@
           <el-button :icon="Search" @click="toggleSearch" circle></el-button>
           <el-button type="primary" :icon="themeStore.isDarkMode ? Moon : Sunny" @click="themeStore.toggleTheme" circle></el-button>
           <el-button type="primary" :icon="ShoppingCart" @click="goToCart" circle></el-button>
+          <!-- 未登录显示登录按钮 -->
+          <el-button v-if="!userStore.isAuthenticated" @click="router.push('/login')" class="action-btn">登录</el-button>
+          
+          <!-- 已登录显示用户下拉菜单 -->
           <el-dropdown class="user-dropdown" @command="handleCommand">
             <el-avatar :size="32" :icon="UserFilled"></el-avatar>
             <template #dropdown>
@@ -56,6 +62,8 @@
                 <el-dropdown-item command="userCenter">个人中心</el-dropdown-item>
                 <el-dropdown-item command="orders">我的订单</el-dropdown-item>
                 <el-dropdown-item command="favorites">我的收藏</el-dropdown-item>
+                <!-- 所有用户都显示产品管理选项 -->
+                <el-dropdown-item command="adminProducts" divided>产品管理</el-dropdown-item>
                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -70,6 +78,7 @@
 import { ref, onMounted } from 'vue'
 import { Search, ShoppingCart, UserFilled, Sunny, Moon } from '@element-plus/icons-vue'
 import { useThemeStore } from '../stores/theme' // 引入主题状态存储
+import { useUserStore } from '../stores/user' // 引入用户状态存储
 import { useRouter } from 'vue-router'
 
 // 导入图片
@@ -77,6 +86,7 @@ import logoUrl from '../assets/logo.png'
 
 // 使用 Pinia store
 const themeStore = useThemeStore()
+const userStore = useUserStore() // 获取用户状态
 const isSearch = ref(true);
 const searchKeyword = ref('');
 const router = useRouter();
@@ -104,6 +114,9 @@ const handleCommand = (command: string) => {
       break;
     case 'favorites':
       router.push('/user?tab=favorites');
+      break;
+    case 'adminProducts':
+      router.push('/admin/products');
       break;
     case 'logout':
       // 退出登录逻辑

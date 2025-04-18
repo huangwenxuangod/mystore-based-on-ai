@@ -302,24 +302,20 @@ const productStore = useProductStore();
 const userStore = useUserStore();
 const loading = computed(() => productStore.loading);
 
-// 检查用户是否管理员，否则重定向
+// 检查用户是否登录，不再检查是否管理员
 onMounted(async () => {
   if (!userStore.isAuthenticated) {
     try {
       const isValid = await userStore.validateToken();
-      if (!isValid || !userStore.isAdmin) {
-        ElMessage.error('无权限访问该页面');
-        router.push('/');
+      if (!isValid) {
+        ElMessage.error('请先登录');
+        router.push('/login');
         return;
       }
     } catch (error) {
-      router.push('/');
+      router.push('/login');
       return;
     }
-  } else if (!userStore.isAdmin) {
-    ElMessage.error('无权限访问该页面');
-    router.push('/');
-    return;
   }
   
   // 加载产品和分类数据

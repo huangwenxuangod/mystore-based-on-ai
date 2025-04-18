@@ -1,37 +1,102 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../models/index.js";
+import authConfig from "../config/auth.config.js";
 
 const User = db.users;
 const Product = db.products;
 const Address = db.addresses;
 
+// 存储验证码的内存缓存（生产环境中应该使用Redis等缓存服务）
+const verificationCodes = new Map();
+
 // 注册
 const register = async (req, res) => {
   try {
+    console.log('接收到注册请求:', JSON.stringify(req.body, null, 2));
+    
     // 验证请求
-    if (!req.body.username || !req.body.email || !req.body.password) {
+    if (!req.body.email || !req.body.password) {
+      console.log('注册失败: 邮箱或密码为空');
       return res.status(400).send({
-        message: "用户名、邮箱和密码不能为空!"
+        message: "邮箱和密码不能为空!"
+      });
+    }
+    
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(req.body.email)) {
+      console.log('注册失败: 邮箱格式不正确', req.body.email);
+      return res.status(400).send({
+        message: "邮箱格式不正确!"
+      });
+    }
+    
+    // 检查密码长度
+    if (req.body.password.length < 6) {
+      console.log('注册失败: 密码长度不足');
+      return res.status(400).send({
+        message: "密码长度至少为6位!"
+      });
+    }
+    
+    // 检查邮箱是否已被注册
+    const existingUser = await User.findOne({
+      where: { email: req.body.email }
+    });
+    
+    if (existingUser) {
+      console.log('注册失败: 邮箱已被注册', req.body.email);
+      return res.status(400).send({
+        message: "邮箱已被注册!"
       });
     }
 
     // 创建用户
     const user = {
-      username: req.body.username,
       email: req.body.email,
-      password: bcrypt.hashSync(req.body.password, 8),
-      realName: req.body.realName,
-      phone: req.body.phone,
-      gender: req.body.gender,
-      birthday: req.body.birthday,
-      avatar: req.body.avatar
+      password: bcrypt.hashSync(req.body.password, 8)
     };
 
+    console.log('正在创建用户:', req.body.email);
+    
     // 保存用户到数据库
     const data = await User.create(user);
-    res.send({ message: "用户注册成功！" });
+    console.log('用户创建成功, ID:', data.id);
+    
+    // 生成JWT令牌
+    const token = jwt.sign({ id: data.id }, authConfig.secret, {
+      expiresIn: 86400 // 24小时
+    });
+    
+    // 返回包含token和用户信息的响应
+    res.status(201).send({
+      message: "用户注册成功！",
+      token,
+      user: {
+        id: data.id,
+        email: data.email,
+        isAdmin: data.isAdmin || false
+      }
+    });
   } catch (err) {
+    console.error('注册错误:', err);
+    
+    // 处理唯一键约束冲突
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      if (err.fields.email) {
+        return res.status(400).send({ message: "邮箱已被注册" });
+      }
+    }
+    
+    // 捕获并记录详细错误信息
+    console.error('详细错误信息:', {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+      name: err.name
+    });
+    
     res.status(500).send({
       message: err.message || "注册用户时出现错误。"
     });
@@ -41,9 +106,15 @@ const register = async (req, res) => {
 // 登录
 const login = async (req, res) => {
   try {
+    if (!req.body.email || !req.body.password) {
+      return res.status(400).send({
+        message: "邮箱和密码不能为空!"
+      });
+    }
+    
     const user = await User.findOne({
       where: {
-        username: req.body.username
+        email: req.body.email
       }
     });
 
@@ -58,23 +129,180 @@ const login = async (req, res) => {
 
     if (!passwordIsValid) {
       return res.status(401).send({
-        accessToken: null,
         message: "密码错误！"
       });
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+    // 生成JWT令牌
+    const token = jwt.sign({ id: user.id }, authConfig.secret, {
       expiresIn: 86400 // 24小时
     });
 
+    // 返回响应
     res.status(200).send({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      accessToken: token
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin || false
+      },
+      message: "登录成功",
+      success: true
     });
   } catch (err) {
     res.status(500).send({ message: err.message });
+  }
+};
+
+// 发送手机验证码
+const sendVerificationCode = async (req, res) => {
+  try {
+    const { phone, type } = req.body;
+    
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+      return res.status(400).send({ message: "手机号格式不正确" });
+    }
+    
+    // 生成6位随机验证码
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // 设置15分钟过期时间
+    const expireAt = Date.now() + 15 * 60 * 1000;
+    
+    // 存储验证码信息
+    verificationCodes.set(phone, { 
+      code, 
+      type: type || 'login', 
+      expireAt 
+    });
+    
+    // 在实际生产环境中，这里需要调用短信发送服务API发送验证码
+    console.log(`为手机号 ${phone} 生成验证码: ${code}, 类型: ${type || 'login'}`);
+    
+    res.status(200).send({ 
+      message: "验证码发送成功", 
+      success: true
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "发送验证码时出错" });
+  }
+};
+
+// 手机号验证码登录
+const phoneLogin = async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+    
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+      return res.status(400).send({ message: "手机号格式不正确" });
+    }
+    
+    // 验证验证码
+    const storedCode = verificationCodes.get(phone);
+    if (!storedCode || storedCode.code !== code) {
+      return res.status(400).send({ message: "验证码错误" });
+    }
+    
+    if (Date.now() > storedCode.expireAt) {
+      // 验证码过期，删除过期的验证码
+      verificationCodes.delete(phone);
+      return res.status(400).send({ message: "验证码已过期" });
+    }
+    
+    // 清除已使用的验证码
+    verificationCodes.delete(phone);
+    
+    // 为简化模型，我们使用phone作为email字段查找用户
+    // 尝试查找使用手机号作为邮箱的用户
+    let user = await User.findOne({ 
+      where: { 
+        email: phone + '@phone.user' // 使用特殊格式标记手机号用户
+      } 
+    });
+    
+    // 如果用户不存在，则自动注册
+    if (!user) {
+      // 生成随机密码
+      const password = Math.random().toString(36).slice(-8);
+      
+      // 创建新用户，仅使用我们简化后的字段
+      user = await User.create({
+        email: phone + '@phone.user', // 使用手机号作为邮箱前缀，添加特殊域名标记手机用户
+        password: bcrypt.hashSync(password, 8)
+      });
+    }
+    
+    // 使用配置文件中的密钥生成JWT令牌
+    const token = jwt.sign({ id: user.id }, authConfig.secret, {
+      expiresIn: 86400 // 24小时
+    });
+    
+    // 返回用户信息和令牌
+    res.status(200).send({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin || false
+      },
+      message: "登录成功",
+      success: true
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "手机号登录时出错" });
+  }
+};
+
+// 重置密码
+const resetPassword = async (req, res) => {
+  try {
+    const { phone, code, newPassword, confirmPassword } = req.body;
+    
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+      return res.status(400).send({ message: "手机号格式不正确" });
+    }
+    
+    // 验证两次密码是否一致
+    if (newPassword !== confirmPassword) {
+      return res.status(400).send({ message: "两次输入的密码不一致" });
+    }
+    
+    // 验证验证码
+    const storedCode = verificationCodes.get(phone);
+    if (!storedCode || storedCode.code !== code || storedCode.type !== 'reset') {
+      return res.status(400).send({ message: "验证码错误" });
+    }
+    
+    if (Date.now() > storedCode.expireAt) {
+      // 验证码过期，删除过期的验证码
+      verificationCodes.delete(phone);
+      return res.status(400).send({ message: "验证码已过期" });
+    }
+    
+    // 清除已使用的验证码
+    verificationCodes.delete(phone);
+    
+    // 查找用户
+    const user = await User.findOne({ 
+      where: { 
+        email: phone + '@phone.user' // 使用特殊格式标记手机号用户
+      } 
+    });
+    if (!user) {
+      return res.status(404).send({ message: "该手机号未注册" });
+    }
+    
+    // 更新密码
+    await user.update({
+      password: bcrypt.hashSync(newPassword, 8)
+    });
+    
+    res.status(200).send({ 
+      message: "密码重置成功", 
+      success: true 
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message || "重置密码时出错。" });
   }
 };
 
@@ -101,15 +329,22 @@ const updateUser = async (req, res) => {
       return res.status(404).send({ message: "用户不存在。" });
     }
 
-    await user.update({
-      realName: req.body.realName,
-      phone: req.body.phone,
-      gender: req.body.gender,
-      birthday: req.body.birthday,
-      avatar: req.body.avatar
-    });
+    // 仅允许更新email字段
+    const updateData = {};
+    if (req.body.email) {
+      updateData.email = req.body.email;
+    }
 
-    res.status(200).send({ message: "用户信息更新成功！" });
+    await user.update(updateData);
+
+    res.status(200).send({ 
+      message: "用户信息更新成功！",
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin || false
+      }
+    });
   } catch (err) {
     res.status(500).send({ message: err.message });
   }
@@ -291,25 +526,20 @@ const updateProfile = async (req, res) => {
       return res.status(404).send({ message: "用户不存在。" });
     }
 
-    await user.update({
-      realName: req.body.realName,
-      phone: req.body.phone,
-      gender: req.body.gender,
-      birthday: req.body.birthday,
-      avatar: req.body.avatar
-    });
+    // 只允许更新email (如果提供)
+    let updateData = {};
+    if (req.body.email) {
+      updateData.email = req.body.email;
+    }
+
+    await user.update(updateData);
 
     res.status(200).send({
       message: "用户资料更新成功！",
       user: {
         id: user.id,
-        username: user.username,
         email: user.email,
-        realName: user.realName,
-        phone: user.phone,
-        gender: user.gender,
-        birthday: user.birthday,
-        avatar: user.avatar
+        isAdmin: user.isAdmin || false
       }
     });
   } catch (err) {
@@ -435,5 +665,8 @@ export default {
   getAddresses,
   addAddress,
   updateAddress,
-  deleteAddress
+  deleteAddress,
+  sendVerificationCode,
+  phoneLogin,
+  resetPassword
 };
