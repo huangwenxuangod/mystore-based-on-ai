@@ -20,28 +20,25 @@ export const useUserStore = defineStore('user', {
   
   getters: {
     // 获取用户邮箱
-    userEmail: (state) => state.user?.email || '未登录',
-    
-    // 验证token
-    validateToken: (state) => {
-      return async () => {
-        if (!state.token) return false;
-        try {
-          const user = await apiService.getCurrentUser();
-          if (user) {
-            state.user = user;
-            state.isAdmin = user.isAdmin || false; // 使用服务器返回的实际权限
-            return true;
-          }
-          return false;
-        } catch (error) {
-          return false;
-        }
-      }
-    }
+    userEmail: (state) => state.user?.email || '未登录'
   },
   
   actions: {
+    // 验证token
+    async validateToken() {
+      if (!this.token) return false;
+      try {
+        const user = await apiService.getCurrentUser();
+        if (user) {
+          this.setUser(user);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        return false;
+      }
+    },
+
     // 简化的用户注册
     async register(credentials: {
       email: string,

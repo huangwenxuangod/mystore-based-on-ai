@@ -172,6 +172,36 @@ const apiService = {
   async getCarouselData() {
     const response = await apiClient.get('/carousel');
     return response.data;
+  },
+
+  // 搜索产品
+  async searchProducts(query) {
+    const response = await apiClient.get('/products/search', { params: { query } });
+    return response.data;
+  },
+
+  // 按分类获取产品
+  async getProductsByCategory(categoryId) {
+    const response = await apiClient.get('/products', { params: { categoryId } });
+    return response.data;
+  },
+  
+  // 获取热门产品
+  async getPopularProducts() {
+    const response = await apiClient.get('/products/popular');
+    return response.data;
+  },
+  
+  // 获取新品上架
+  async getNewArrivals() {
+    const response = await apiClient.get('/products/new');
+    return response.data;
+  },
+  
+  // 获取促销产品
+  async getPromotions() {
+    const response = await apiClient.get('/products/promotions');
+    return response.data;
   }
 };
 

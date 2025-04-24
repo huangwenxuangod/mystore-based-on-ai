@@ -91,7 +91,7 @@ export const useProductStore = defineStore('product', {
     },
     
     // 创建新产品
-    async createProduct(product: Omit<Product, 'id'>) {
+    async createProduct(product: Omit<Product, 'id'>, token?: string) {
       this.loading = true
       this.error = null
       try {
@@ -109,7 +109,7 @@ export const useProductStore = defineStore('product', {
     },
     
     // 更新产品
-    async updateProduct(id: number, product: Partial<Product>) {
+    async updateProduct(id: number, product: Partial<Product>, token?: string) {
       this.loading = true
       this.error = null
       try {
@@ -133,7 +133,7 @@ export const useProductStore = defineStore('product', {
     },
     
     // 删除产品
-    async deleteProduct(id: number) {
+    async deleteProduct(id: number, token?: string) {
       this.loading = true
       this.error = null
       try {

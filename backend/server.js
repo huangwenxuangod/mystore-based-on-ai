@@ -35,15 +35,6 @@ app.get("/", (req, res) => {
   res.json({ message: "欢迎访问MyStore API。" });
 });
 
-// 数据库连接
-db.sequelize.sync({ force: true }) // 使用 force:true 强制重建表结构
-  .then(() => {
-    console.log("数据库已连接并重新创建表结构。");
-  })
-  .catch(err => {
-    console.log("数据库连接失败: " + err.message);
-  });
-
 // 导入路由
 import categoryRoutes from "./routes/category.routes.js";
 import productRoutes from "./routes/product.routes.js";
